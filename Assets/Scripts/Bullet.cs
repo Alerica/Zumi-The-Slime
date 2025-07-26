@@ -6,5 +6,7 @@ public class Bullet : MonoBehaviour
     {
         IInteractable interactable = collision.collider.GetComponent<IInteractable>();
         interactable?.Interact();
+
+        // Destroy(gameObject); // Optional: destroy bullet after hit
     }
 }
