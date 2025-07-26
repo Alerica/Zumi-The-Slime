@@ -48,7 +48,6 @@ public class FrogMovement : MonoBehaviour
     private float jumpTimer;
     private bool jumpPressed;
     
-    // Animation and visual feedback
     private Vector3 originalScale;
     private bool isSquashing = false;
     private float squashTimer = 0f;
@@ -78,6 +77,11 @@ public class FrogMovement : MonoBehaviour
         GroundCheck();
         HandleTimers();
         HandleVisualEffects();
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            TurnAround();
+        }
     }
     
     void FixedUpdate()
@@ -106,7 +110,6 @@ public class FrogMovement : MonoBehaviour
             worldMoveDirection = Vector3.zero;
         }
         
-        // Jump input with buffer
         if (Input.GetKeyDown(KeyCode.Space))
         {
             jumpPressed = true;
@@ -156,25 +159,50 @@ public class FrogMovement : MonoBehaviour
         {
             if (isGrounded)
             {
-                if (Mathf.Abs(moveDirection.x) > 0.1f)
+                if (canHop && rb.linearVelocity.magnitude < maxHopSpeed && moveDirection.magnitude > 0.1f)
                 {
-                    transform.Rotate(0, moveDirection.x * turnSpeed * Time.fixedDeltaTime * 50f, 0);
-                }
-                
-                if (canHop && rb.linearVelocity.magnitude < maxHopSpeed && Mathf.Abs(moveDirection.z) > 0.1f)
-                {
-                    // Use forward/back direction of the frog
-                    Vector3 hopDirection = transform.forward * moveDirection.z * hopForce;
-                    hopDirection.y = hopForce * 0.3f; 
+                    Vector3 hopDirection = Vector3.zero;
+                    
+                    if (Mathf.Abs(moveDirection.z) > 0.1f)
+                    {
+                        hopDirection += transform.forward * moveDirection.z * hopForce;
+                    }
+                    
+                    if (Mathf.Abs(moveDirection.x) > 0.1f)
+                    {
+                        hopDirection += transform.right * moveDirection.x * hopForce;
+                    }
+                    
+                    hopDirection.y = hopForce * 0.3f;
+                    
                     rb.AddForce(hopDirection, ForceMode.Impulse);
                     
                     StartCoroutine(HopCooldown());
                     PlayHopSound();
-                    DoSquashStretch(0.8f, 1.2f, 0.05f);
+                    
+                    if (Mathf.Abs(moveDirection.x) > Mathf.Abs(moveDirection.z))
+                    {
+                        DoSquashStretch(0.9f, 1.1f, 0.05f);
+                    }
+                    else
+                    {
+                        DoSquashStretch(0.8f, 1.2f, 0.05f);
+                    }
                 }
-                else if (Mathf.Abs(moveDirection.z) > 0.1f)
+                else if (moveDirection.magnitude > 0.1f)
                 {
-                    Vector3 targetVelocity = transform.forward * moveDirection.z * currentMoveSpeed;
+                    Vector3 targetVelocity = Vector3.zero;
+                    
+                    if (Mathf.Abs(moveDirection.z) > 0.1f)
+                    {
+                        targetVelocity += transform.forward * moveDirection.z * currentMoveSpeed * 0.3f; // Reduced for hop-based movement
+                    }
+                    
+                    if (Mathf.Abs(moveDirection.x) > 0.1f)
+                    {
+                        targetVelocity += transform.right * moveDirection.x * currentMoveSpeed * 0.3f; // Reduced for hop-based movement
+                    }
+                    
                     targetVelocity.y = rb.linearVelocity.y;
                     rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, Time.fixedDeltaTime * 10f);
                 }
@@ -186,10 +214,9 @@ public class FrogMovement : MonoBehaviour
                     rb.AddForce(transform.forward * moveDirection.z * currentMoveSpeed * 10f);
                 }
                 
-                // Allow some turning in air
                 if (Mathf.Abs(moveDirection.x) > 0.1f)
                 {
-                    transform.Rotate(0, moveDirection.x * turnSpeed * Time.fixedDeltaTime * 30f, 0);
+                    rb.AddForce(transform.right * moveDirection.x * currentMoveSpeed * 10f);
                 }
             }
         }
@@ -286,6 +313,7 @@ public class FrogMovement : MonoBehaviour
             yield return null;
         }
         
+        // Return to original scale
         elapsed = 0f;
         startScale = transform.localScale;
         while (elapsed < duration)
@@ -355,7 +383,10 @@ public class FrogMovement : MonoBehaviour
             audioSource.PlayOneShot(clip);
         }
     }
-    
+    void TurnAround()
+    {
+        transform.Rotate(0f, 180f, 0f, Space.Self);
+    } 
     void OnDrawGizmosSelected()
     {
         if (groundCheck != null)

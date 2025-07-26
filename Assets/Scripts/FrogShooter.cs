@@ -34,6 +34,9 @@ public class FrogShooter : MonoBehaviour
     public AudioClip[] shootSounds;
     public AudioClip[] reloadSounds;
     
+    [Header("Camera")]
+    public ThirdPersonCameraController cameraController; 
+    public bool useScreenCenterAiming = true; 
     private GameObject currentBall;
     private GameObject nextBall;
     private int currentBallColor;
@@ -50,6 +53,11 @@ public class FrogShooter : MonoBehaviour
         if (playerCamera == null)
         {
             playerCamera = GetComponentInChildren<Camera>();
+        }
+        
+        if (cameraController == null)
+        {
+            cameraController = GetComponent<ThirdPersonCameraController>();
         }
         
         if (mouthPosition == null)
@@ -166,29 +174,60 @@ public class FrogShooter : MonoBehaviour
     
     void HandleAiming()
     {
-        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        
-        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+        if (useScreenCenterAiming && cameraController != null)
         {
-            aimPoint = hit.point;
-            isAiming = true;
+            Ray ray = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
+            RaycastHit hit;
             
-            if (aimReticle != null)
+            if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
             {
-                aimReticle.SetActive(true);
-                aimReticle.transform.position = hit.point;
-                aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
+                aimPoint = hit.point;
+                isAiming = true;
+                
+                if (aimReticle != null)
+                {
+                    aimReticle.SetActive(true);
+                    aimReticle.transform.position = hit.point;
+                    aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
+                }
+            }
+            else
+            {
+                aimPoint = ray.GetPoint(maxAimDistance);
+                isAiming = true;
+                
+                if (aimReticle != null)
+                {
+                    aimReticle.SetActive(false);
+                }
             }
         }
         else
         {
-            aimPoint = ray.GetPoint(maxAimDistance);
-            isAiming = true;
+            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
             
-            if (aimReticle != null)
+            if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
             {
-                aimReticle.SetActive(false);
+                aimPoint = hit.point;
+                isAiming = true;
+                
+                if (aimReticle != null)
+                {
+                    aimReticle.SetActive(true);
+                    aimReticle.transform.position = hit.point;
+                    aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
+                }
+            }
+            else
+            {
+                aimPoint = ray.GetPoint(maxAimDistance);
+                isAiming = true;
+                
+                if (aimReticle != null)
+                {
+                    aimReticle.SetActive(false);
+                }
             }
         }
         
@@ -207,9 +246,9 @@ public class FrogShooter : MonoBehaviour
     {
         canShoot = false;
         
-        Debug.Log($"Shoot Position Transform: {shootPosition}");
-        Debug.Log($"Shoot Position World Pos: {shootPosition.position}");
-        Debug.Log($"Current Ball Position Before: {currentBall.transform.position}");
+        // Debug.Log($"Shoot Position Transform: {shootPosition}");
+        // Debug.Log($"Shoot Position World Pos: {shootPosition.position}");
+        // Debug.Log($"Current Ball Position Before: {currentBall.transform.position}");
         
         GameObject ballToShoot = currentBall;
         
@@ -262,7 +301,6 @@ public class FrogShooter : MonoBehaviour
         currentBall = nextBall;
         currentBallColor = nextBallColor;
         
-        // Animate the movement
         float moveTime = 0.3f;
         float elapsed = 0f;
         Vector3 startPos = currentBall.transform.position;
@@ -278,7 +316,6 @@ public class FrogShooter : MonoBehaviour
         
         currentBall.transform.localPosition = Vector3.zero;
         
-        // Create new next ball
         nextBallColor = Random.Range(0, ballMaterials.Length);
         nextBall = CreateBall(nextBallColor, shoulderPosition.position);
         nextBall.transform.SetParent(shoulderPosition);
@@ -293,12 +330,14 @@ public class FrogShooter : MonoBehaviour
     {
         if (currentBall != null)
         {
+            // Floating animation - ball lonjong ?
             float floatY = Mathf.Sin(Time.time * ballFloatSpeed) * ballFloatAmount;
             currentBall.transform.localPosition = new Vector3(0, floatY, 0);
         }
         
         if (nextBall != null)
         {
+            // Slight rotation animation
             nextBall.transform.Rotate(Vector3.up, 30f * Time.deltaTime);
         }
     }
@@ -387,7 +426,7 @@ public class FrogShooter : MonoBehaviour
 public class BallBehavior : MonoBehaviour
 {
     public int colorIndex;
-    public float lifetime = 10f; 
+    public float lifetime = 10f;
     
     void Start()
     {
