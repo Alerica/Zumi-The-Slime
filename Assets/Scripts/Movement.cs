@@ -78,10 +78,7 @@ public class FrogMovement : MonoBehaviour
         HandleTimers();
         HandleVisualEffects();
 
-        if (Input.GetMouseButtonDown(1))
-        {
-            TurnAround();
-        }
+
     }
     
     void FixedUpdate()
