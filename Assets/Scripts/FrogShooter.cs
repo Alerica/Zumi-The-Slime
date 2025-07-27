@@ -33,6 +33,7 @@ public class FrogShooter : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip[] shootSounds;
     public AudioClip[] reloadSounds;
+    public BallUI ballUI;
     
     [Header("Camera")]
     public ThirdPersonCameraController cameraController; 
@@ -114,18 +115,20 @@ public class FrogShooter : MonoBehaviour
         AnimateBalls();
         UpdateTrajectory();
     }
-    
+
     void SpawnInitialBalls()
     {
         currentBallColor = Random.Range(0, ballMaterials.Length);
         currentBall = CreateBall(currentBallColor, mouthPosition.position);
         currentBall.transform.SetParent(mouthPosition);
-        currentBall.transform.localPosition = Vector3.zero; 
-        
+        currentBall.transform.localPosition = Vector3.zero;
+
         nextBallColor = Random.Range(0, ballMaterials.Length);
         nextBall = CreateBall(nextBallColor, shoulderPosition.position);
         nextBall.transform.SetParent(shoulderPosition);
         nextBall.transform.localPosition = Vector3.zero; 
+        
+        ballUI.UpdateBallUI(currentBallColor, nextBallColor);
     }
     
     GameObject CreateBall(int colorIndex, Vector3 position)
@@ -293,19 +296,19 @@ public class FrogShooter : MonoBehaviour
         
         StartCoroutine(ReloadBall());
     }
-    
+
     IEnumerator ReloadBall()
     {
         yield return new WaitForSeconds(0.1f);
-        
+
         currentBall = nextBall;
         currentBallColor = nextBallColor;
-        
+
         float moveTime = 0.3f;
         float elapsed = 0f;
         Vector3 startPos = currentBall.transform.position;
         currentBall.transform.SetParent(mouthPosition);
-        
+
         while (elapsed < moveTime)
         {
             elapsed += Time.deltaTime;
@@ -313,17 +316,20 @@ public class FrogShooter : MonoBehaviour
             currentBall.transform.position = Vector3.Lerp(startPos, mouthPosition.position, t);
             yield return null;
         }
-        
+
         currentBall.transform.localPosition = Vector3.zero;
-        
+
         nextBallColor = Random.Range(0, ballMaterials.Length);
         nextBall = CreateBall(nextBallColor, shoulderPosition.position);
         nextBall.transform.SetParent(shoulderPosition);
-        
+
         PlayReloadSound();
-        
+
         yield return new WaitForSeconds(shootCooldown);
         canShoot = true;
+        
+        
+        ballUI.UpdateBallUI(currentBallColor, nextBallColor);
     }
     
     void AnimateBalls()
