@@ -175,67 +175,72 @@ public class FrogShooter : MonoBehaviour
         return ball;
     }
     
-    void HandleAiming()
+// Replace the HandleAiming() method in your FrogShooter script with this:
+void HandleAiming()
+{
+    if (cameraController != null)
     {
-        if (useScreenCenterAiming && cameraController != null)
+        // Use camera controller's aiming system
+        Ray ray = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
+        RaycastHit hit;
+        
+        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
         {
-            Ray ray = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
-            RaycastHit hit;
+            aimPoint = hit.point;
+            isAiming = true;
             
-            if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+            if (aimReticle != null)
             {
-                aimPoint = hit.point;
-                isAiming = true;
-                
-                if (aimReticle != null)
-                {
-                    aimReticle.SetActive(true);
-                    aimReticle.transform.position = hit.point;
-                    aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
-                }
-            }
-            else
-            {
-                aimPoint = ray.GetPoint(maxAimDistance);
-                isAiming = true;
-                
-                if (aimReticle != null)
-                {
-                    aimReticle.SetActive(false);
-                }
+                aimReticle.SetActive(true);
+                aimReticle.transform.position = hit.point;
+                aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
             }
         }
         else
         {
-            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+            // Aim at screen center if no hit
+            Ray screenCenterRay = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
+            aimPoint = screenCenterRay.GetPoint(maxAimDistance);
+            isAiming = true;
             
-            if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+            if (aimReticle != null)
             {
-                aimPoint = hit.point;
-                isAiming = true;
-                
-                if (aimReticle != null)
-                {
-                    aimReticle.SetActive(true);
-                    aimReticle.transform.position = hit.point;
-                    aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
-                }
-            }
-            else
-            {
-                aimPoint = ray.GetPoint(maxAimDistance);
-                isAiming = true;
-                
-                if (aimReticle != null)
-                {
-                    aimReticle.SetActive(false);
-                }
+                aimReticle.SetActive(false);
             }
         }
-        
-        aimDirection = (aimPoint - shootPosition.position).normalized;
     }
+    else
+    {
+        // Fallback to mouse position aiming
+        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+        
+        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+        {
+            aimPoint = hit.point;
+            isAiming = true;
+            
+            if (aimReticle != null)
+            {
+                aimReticle.SetActive(true);
+                aimReticle.transform.position = hit.point;
+                aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
+            }
+        }
+        else
+        {
+            aimPoint = ray.GetPoint(maxAimDistance);
+            isAiming = true;
+            
+            if (aimReticle != null)
+            {
+                aimReticle.SetActive(false);
+            }
+        }
+    }
+    
+    aimDirection = (aimPoint - shootPosition.position).normalized;
+}
     
     void HandleShooting()
     {
@@ -428,6 +433,7 @@ public class FrogShooter : MonoBehaviour
         }
     }
 }
+
 
 public class BallBehavior : MonoBehaviour
 {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ImprovedFrogMovement : MonoBehaviour
+public class  NewMovement : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 6f;
@@ -17,11 +17,6 @@ public class ImprovedFrogMovement : MonoBehaviour
     public float jumpCooldown = 0.3f;
     public float coyoteTime = 0.2f;
     public float jumpBufferTime = 0.2f;
-    
-    [Header("Hop Settings")]
-    public float hopForce = 5f;
-    public float hopCooldown = 0.1f;
-    public float maxHopSpeed = 8f;
     
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -43,7 +38,6 @@ public class ImprovedFrogMovement : MonoBehaviour
     private bool isGrounded;
     private bool wasGrounded;
     private bool canJump = true;
-    private bool canHop = true;
     private float coyoteTimer;
     private float jumpBufferTimer;
     private float jumpTimer;
@@ -147,6 +141,19 @@ public class ImprovedFrogMovement : MonoBehaviour
         if (jumpTimer <= 0) canJump = true;
     }
     
+    // void HandleRotation()
+    // {
+    //     if (cameraController != null && !cameraController.IsAiming() && smoothedMoveDirection.magnitude > 0.1f)
+    //     {
+    //         Quaternion targetRotation = Quaternion.LookRotation(smoothedMoveDirection);
+    //         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    //     }
+    // }
+    public void SetMovementRotationEnabled(bool enabled)
+    {
+        canRotateWithMovement = enabled;
+    }
+    
     void HandleRotation()
     {
         if (cameraController != null && !cameraController.IsAiming() && smoothedMoveDirection.magnitude > 0.1f && canRotateWithMovement)
@@ -156,46 +163,21 @@ public class ImprovedFrogMovement : MonoBehaviour
         }
     }
     
-    public void SetMovementRotationEnabled(bool enabled)
-    {
-        canRotateWithMovement = enabled;
-    }
-    
     void HandleMovement()
     {
         if (smoothedMoveDirection.magnitude > 0.1f)
         {
+            float currentMoveSpeed = isGrounded ? moveSpeed : moveSpeed * airControl;
+            Vector3 targetVelocity = smoothedMoveDirection * currentMoveSpeed;
+            
             if (isGrounded)
             {
-                if (canHop && rb.linearVelocity.magnitude < maxHopSpeed)
-                {
-                    Vector3 hopDirection = smoothedMoveDirection * hopForce;
-                    hopDirection.y = hopForce * 0.3f;
-                    
-                    rb.AddForce(hopDirection, ForceMode.Impulse);
-                    
-                    StartCoroutine(HopCooldown());
-                    
-                    if (Mathf.Abs(smoothedMoveDirection.x) > Mathf.Abs(smoothedMoveDirection.z))
-                    {
-                        DoSquashStretch(0.9f, 1.1f, 0.05f);
-                    }
-                    else
-                    {
-                        DoSquashStretch(0.8f, 1.2f, 0.05f);
-                    }
-                }
-                else if (smoothedMoveDirection.magnitude > 0.1f)
-                {
-                    Vector3 targetVelocity = smoothedMoveDirection * moveSpeed * 0.3f;
-                    targetVelocity.y = rb.linearVelocity.y;
-                    rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, Time.fixedDeltaTime * 10f);
-                }
+                Vector3 velocityChange = targetVelocity - new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+                rb.AddForce(velocityChange, ForceMode.VelocityChange);
             }
             else
             {
-                float currentMoveSpeed = moveSpeed * airControl;
-                rb.AddForce(smoothedMoveDirection * currentMoveSpeed * 10f, ForceMode.Force);
+                rb.AddForce(targetVelocity * 10f, ForceMode.Force);
             }
         }
     }
@@ -287,13 +269,6 @@ public class ImprovedFrogMovement : MonoBehaviour
         isSquashing = false;
     }
     
-    System.Collections.IEnumerator HopCooldown()
-    {
-        canHop = false;
-        yield return new WaitForSeconds(hopCooldown);
-        canHop = true;
-    }
-    
     void PlayJumpSound()
     {
         if (audioSource && jumpSounds.Length > 0)
@@ -314,6 +289,8 @@ public class ImprovedFrogMovement : MonoBehaviour
         }
     }
     
+    
+    
     void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
@@ -322,4 +299,5 @@ public class ImprovedFrogMovement : MonoBehaviour
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
     }
+    
 }
