@@ -9,7 +9,6 @@ using Random = UnityEngine.Random;
 
 public class SplineBallSpawner : MonoBehaviour
 {
-
     public event Action<int, int, List<int>> OnShotReport;
 
     private List<int> enteredTypes = new List<int>();
@@ -37,7 +36,7 @@ public class SplineBallSpawner : MonoBehaviour
     public AudioClip matchSound;
 
     [Header("Animation Speeds")]
-    [Tooltip("Time for snap‑back animation after each match.")]
+    [Tooltip("Time for snap-back animation after each match.")]
     public float snapBackDuration = 0.2f;
     [Tooltip("Time between sequential matches in a chain reaction.")]
     public float interMatchDelay = 0.05f;
@@ -48,8 +47,6 @@ public class SplineBallSpawner : MonoBehaviour
     private Queue<int> colorQueue;
     private bool isProcessing = false;
     private bool isPaused = false;
-    private float currentKnockback = 0f;
-    private bool isKnockingBack = false;
 
     [Serializable]
     public class SplineBall
@@ -105,15 +102,11 @@ public class SplineBallSpawner : MonoBehaviour
     void MoveBallsAlongSpline()
     {
         float dt = (chainSpeed * Time.deltaTime) / splineLength;
-        if (!isKnockingBack && currentKnockback > 0f)
-            currentKnockback = Mathf.Max(0f, currentKnockback - dt);
-
         var toRemove = new List<SplineBall>();
         foreach (var ball in ballChain)
         {
             if (ball.isBeingDestroyed) continue;
-            float extra = (!isKnockingBack && currentKnockback > 0f) ? dt : 0f;
-            ball.distanceOnSpline += dt + extra;
+            ball.distanceOnSpline += dt;
             if (ball.distanceOnSpline >= 1f) toRemove.Add(ball);
         }
         foreach (var ball in toRemove)
@@ -137,12 +130,12 @@ public class SplineBallSpawner : MonoBehaviour
     void TrySpawnNext()
     {
         if (colorQueue == null || colorQueue.Count == 0) return;
-        if (CanSpawnNewBall())
+        float spawnPos = -bufferZoneSize;
+        float minDist  = ballSpacing / splineLength;
+        if (ballChain.All(b => b.distanceOnSpline >= spawnPos + minDist))
         {
             int color = colorQueue.Dequeue();
-
             enteredTypes.Add(color);
-
             var go = CreateBall(color, -bufferZoneSize);
             ballChain.Insert(0, new SplineBall(go, color, -bufferZoneSize));
             RearrangeFrom(0);
@@ -175,16 +168,16 @@ public class SplineBallSpawner : MonoBehaviour
     IEnumerator ProcessChainReaction(int insertionIndex, int insertionColor)
     {
         isProcessing = true;
-        isPaused = true;
+        isPaused     = true;
         yield return new WaitForSeconds(matchCheckDelay);
 
         int totalDestroyed = 0;
-        int comboCount    = 0;
+        int comboCount     = 0;
 
         while (true)
         {
-            // Expand around center 
-            int left = insertionIndex;
+            // find match span
+            int left  = insertionIndex;
             while (left - 1 >= 0 && ballChain[left - 1].colorIndex == insertionColor) left--;
             int right = insertionIndex;
             while (right + 1 < ballChain.Count && ballChain[right + 1].colorIndex == insertionColor) right++;
@@ -193,27 +186,32 @@ public class SplineBallSpawner : MonoBehaviour
 
             comboCount++;
             totalDestroyed += matchCount;
-
-            // Play sound
             audioSource?.PlayOneShot(matchSound);
-            var indicesToDestroy = Enumerable.Range(left, matchCount).ToList();
-            yield return ApplyKnockback(indicesToDestroy);
-            yield return DestroyMatchedBalls(indicesToDestroy);
-            yield return SnapBackAnimation();
 
-            // After snap‑back, check for further chain reaction
-            insertionIndex = left - 1;
-            insertionColor = (insertionIndex >= 0 && insertionIndex < ballChain.Count)
-                ? ballChain[insertionIndex].colorIndex
-                : -1;
+            // smooth knockback
+            float pushAmount = Mathf.Min(knockbackForce * (1f + (matchCount - minMatchCount) * 0.2f), bufferZoneSize * 0.8f);
+            yield return StartCoroutine(SmoothKnockback(pushAmount));
+
+            // only destroy balls that have actually come out of the buffer
+            var indicesToDestroy = Enumerable.Range(left, matchCount)
+                                             .Where(i => ballChain[i].distanceOnSpline >= 0f)
+                                             .ToList();
+
+            yield return DestroyMatchedBalls(indicesToDestroy);
+
+            // smooth snap-back
+            yield return StartCoroutine(SnapBackAnimation());
+
+            insertionIndex  = left - 1;
+            insertionColor  = (insertionIndex >= 0 && insertionIndex < ballChain.Count)
+                              ? ballChain[insertionIndex].colorIndex
+                              : -1;
 
             if (insertionIndex < 0 || insertionIndex + 1 >= ballChain.Count) break;
             if (ballChain[insertionIndex].colorIndex != ballChain[insertionIndex + 1].colorIndex) break;
-
             yield return new WaitForSeconds(matchCheckDelay);
         }
 
-        // report / send signal 
         OnShotReport?.Invoke(totalDestroyed, comboCount, new List<int>(enteredTypes));
         enteredTypes.Clear();
 
@@ -221,66 +219,85 @@ public class SplineBallSpawner : MonoBehaviour
         isProcessing = false;
     }
 
-    IEnumerator ApplyKnockback(List<int> indices)
+    IEnumerator SmoothKnockback(float amount)
     {
-        if (!indices.Any()) yield break;
-        isKnockingBack = true;
-        float amount = Mathf.Min(knockbackForce * (1f + (indices.Count - minMatchCount) * 0.2f), bufferZoneSize * 0.8f);
-        float start = currentKnockback;
-        float target = start + amount;
-        float elapsed = 0f;
-        var originals = ballChain.ToDictionary(b => b, b => b.distanceOnSpline);
+        var originals = ballChain.Select(b => b.distanceOnSpline).ToArray();
+        var targets   = originals.Select(d => d - amount).ToArray();
 
+        float elapsed = 0f;
         while (elapsed < knockbackDuration)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / knockbackDuration);
-            currentKnockback = Mathf.Lerp(start, target, t);
-            float delta = currentKnockback - start;
-            foreach (var kv in originals)
-                kv.Key.distanceOnSpline = kv.Value - delta;
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        currentKnockback = target;
-        isKnockingBack   = false;
-    }
-
-    IEnumerator DestroyMatchedBalls(List<int> indices)
-    {
-        foreach (int i in indices) ballChain[i].isBeingDestroyed = true;
-        float elapsed = 0f;
-        while (elapsed < destroyAnimationTime)
-        {
-            float scale = Mathf.Lerp(ballSize, 0f, elapsed / destroyAnimationTime);
-            foreach (int i in indices)
-                if (i < ballChain.Count)
-                    ballChain[i].gameObject.transform.localScale = Vector3.one * scale;
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        for (int i = indices.Count - 1; i >= 0; i--)
-        {
-            int idx = indices[i];
-            if (idx < ballChain.Count)
+            for (int i = 0; i < ballChain.Count; i++)
             {
-                Destroy(ballChain[idx].gameObject);
-                ballChain.RemoveAt(idx);
+                float d = Mathf.Lerp(originals[i], targets[i], t);
+                ballChain[i].distanceOnSpline = d;
+                ballChain[i].gameObject.transform.position = EvaluatePosition(d);
             }
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        for (int i = 0; i < ballChain.Count; i++)
+        {
+            ballChain[i].distanceOnSpline = targets[i];
+            ballChain[i].gameObject.transform.position = EvaluatePosition(targets[i]);
         }
     }
 
     IEnumerator SnapBackAnimation()
     {
-        yield return null;
+        var originals = ballChain.Select(b => b.distanceOnSpline).ToArray();
         RearrangeFrom(0);
+        var targets   = ballChain.Select(b => b.distanceOnSpline).ToArray();
+        for (int i = 0; i < ballChain.Count; i++)
+            ballChain[i].distanceOnSpline = originals[i];
+
+        float elapsed = 0f;
+        while (elapsed < snapBackDuration)
+        {
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / snapBackDuration);
+            for (int i = 0; i < ballChain.Count; i++)
+            {
+                float d = Mathf.Lerp(originals[i], targets[i], t);
+                ballChain[i].distanceOnSpline = d;
+                ballChain[i].gameObject.transform.position = EvaluatePosition(d);
+            }
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        for (int i = 0; i < ballChain.Count; i++)
+        {
+            ballChain[i].distanceOnSpline = targets[i];
+            ballChain[i].gameObject.transform.position = EvaluatePosition(targets[i]);
+        }
     }
 
-    bool CanSpawnNewBall()
+    IEnumerator DestroyMatchedBalls(List<int> indices)
     {
-        float spawnPos = -bufferZoneSize + currentKnockback;
-        float minDist  = ballSpacing / splineLength;
-        return ballChain.All(b => b.distanceOnSpline >= spawnPos + minDist);
+        foreach (int i in indices)
+            if (i < ballChain.Count && ballChain[i].distanceOnSpline >= 0f)
+                ballChain[i].isBeingDestroyed = true;
+
+        float elapsed = 0f;
+        while (elapsed < destroyAnimationTime)
+        {
+            float scale = Mathf.Lerp(ballSize, 0f, elapsed / destroyAnimationTime);
+            foreach (int i in indices)
+                if (i < ballChain.Count && ballChain[i].distanceOnSpline >= 0f)
+                    ballChain[i].gameObject.transform.localScale = Vector3.one * scale;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        for (int i = indices.Count - 1; i >= 0; i--)
+        {
+            int idx = indices[i];
+            if (idx < ballChain.Count && ballChain[idx].distanceOnSpline >= 0f)
+            {
+                Destroy(ballChain[idx].gameObject);
+                ballChain.RemoveAt(idx);
+            }
+        }
     }
 
     GameObject CreateBall(int color, float t)
@@ -290,7 +307,7 @@ public class SplineBallSpawner : MonoBehaviour
         go.transform.localScale = Vector3.one * ballSize;
         var rend = go.GetComponent<Renderer>();
         if (rend) rend.material = ballMaterials[color];
-        if (t < 0f && rend) rend.enabled = false;
+        rend.enabled = t >= 0f;
         var col = go.GetComponent<Collider>() ?? go.AddComponent<SphereCollider>();
         col.isTrigger = true;
         var rb = go.GetComponent<Rigidbody>() ?? go.AddComponent<Rigidbody>();
