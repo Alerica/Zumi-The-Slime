@@ -14,6 +14,8 @@ public class FrogShooter : MonoBehaviour
     public float shootCooldown = 0.3f;
     public LayerMask aimLayerMask = -1; 
     public float maxAimDistance = 50f;
+    [Range(0f, 1f)]
+    public float gravityMultiplier = 0.3f; // Reduce bullet drop (0 = no drop, 1 = full gravity)
     
     [Header("Ball Positions")]
     public Transform mouthPosition; 
@@ -36,8 +38,9 @@ public class FrogShooter : MonoBehaviour
     public BallUI ballUI;
     
     [Header("Camera")]
-    public ThirdPersonCameraController cameraController; 
+    public NewCamera newCameraController;
     public bool useScreenCenterAiming = true; 
+    
     private GameObject currentBall;
     private GameObject nextBall;
     private int currentBallColor;
@@ -50,64 +53,51 @@ public class FrogShooter : MonoBehaviour
     
     void Start()
     {
-        playerCamera = Camera.main;
-        if (playerCamera == null)
-        {
-            playerCamera = GetComponentInChildren<Camera>();
-        }
-        
-        if (cameraController == null)
-        {
-            cameraController = GetComponent<ThirdPersonCameraController>();
-        }
-        
+        playerCamera = Camera.main ?? GetComponentInChildren<Camera>();
+        newCameraController = newCameraController ?? GetComponent<NewCamera>();
+        EnsurePositionsAndLine();
+        if (ballPrefab == null)
+            Debug.LogError("Ball Prefab is not assigned! Please assign a ball prefab in the inspector.");
+
+        SpawnInitialBalls();
+    }
+
+    void EnsurePositionsAndLine()
+    {
         if (mouthPosition == null)
         {
-            GameObject mouth = new GameObject("MouthPosition");
-            mouth.transform.SetParent(transform);
-            mouth.transform.localPosition = new Vector3(0, 0.5f, 0.5f);
-            mouthPosition = mouth.transform;
-            Debug.Log("Created MouthPosition at: " + mouthPosition.position);
+            var m = new GameObject("MouthPosition");
+            m.transform.SetParent(transform);
+            m.transform.localPosition = new Vector3(0, 0.5f, 0.5f);
+            mouthPosition = m.transform;
         }
-        
         if (shoulderPosition == null)
         {
-            GameObject shoulder = new GameObject("ShoulderPosition");
-            shoulder.transform.SetParent(transform);
-            shoulder.transform.localPosition = new Vector3(0.3f, 0.3f, -0.2f);
-            shoulderPosition = shoulder.transform;
-            Debug.Log("Created ShoulderPosition at: " + shoulderPosition.position);
+            var s = new GameObject("ShoulderPosition");
+            s.transform.SetParent(transform);
+            s.transform.localPosition = new Vector3(0.3f, 0.3f, -0.2f);
+            shoulderPosition = s.transform;
         }
-        
         if (shootPosition == null)
         {
-            GameObject shoot = new GameObject("ShootPosition");
-            shoot.transform.SetParent(transform);
-            shoot.transform.localPosition = new Vector3(0, 0.5f, 0.5f);
-            shootPosition = shoot.transform;
-            Debug.Log("Created ShootPosition at: " + shootPosition.position);
+            var sp = new GameObject("ShootPosition");
+            sp.transform.SetParent(transform);
+            sp.transform.localPosition = new Vector3(0, 0.5f, 0.5f);
+            shootPosition = sp.transform;
         }
-        
         if (trajectoryLine == null)
         {
-            GameObject lineObj = new GameObject("TrajectoryLine");
+            var lineObj = new GameObject("TrajectoryLine");
             lineObj.transform.SetParent(transform);
             trajectoryLine = lineObj.AddComponent<LineRenderer>();
             trajectoryLine.startWidth = 0.05f;
             trajectoryLine.endWidth = 0.02f;
             trajectoryLine.material = new Material(Shader.Find("Sprites/Default"));
             trajectoryLine.startColor = new Color(1, 1, 1, 0.5f);
-            trajectoryLine.endColor = new Color(1, 1, 1, 0.1f);
+            trajectoryLine.endColor   = new Color(1, 1, 1, 0.1f);
         }
-        
-        if (ballPrefab == null)
-        {
-            Debug.LogError("Ball Prefab is not assigned! Please assign a ball prefab in the inspector.");
-        }
-        
-        SpawnInitialBalls();
     }
-    
+
     void Update()
     {
         HandleAiming();
@@ -133,12 +123,9 @@ public class FrogShooter : MonoBehaviour
     
     GameObject CreateBall(int colorIndex, Vector3 position)
     {
-        GameObject ball = null;
-        
+        GameObject ball;
         if (ballPrefab != null)
-        {
             ball = Instantiate(ballPrefab, position, Quaternion.identity);
-        }
         else
         {
             ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -147,79 +134,38 @@ public class FrogShooter : MonoBehaviour
         }
         
         ball.transform.localScale = Vector3.one * ballScale;
-        
-        if (ballMaterials != null && ballMaterials.Length > 0 && colorIndex < ballMaterials.Length)
-        {
-            Renderer renderer = ball.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                renderer.material = ballMaterials[colorIndex];
-            }
-        }
-        
-        Rigidbody rb = ball.GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            rb = ball.AddComponent<Rigidbody>();
-        }
+        var rend = ball.GetComponent<Renderer>();
+        if (rend != null && ballMaterials.Length > 0 && colorIndex < ballMaterials.Length)
+            rend.material = ballMaterials[colorIndex];
+
+        var rb = ball.GetComponent<Rigidbody>() ?? ball.AddComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = true;
-        
-        Collider col = ball.GetComponent<Collider>();
-        if (col == null)
-        {
-            col = ball.AddComponent<SphereCollider>();
-        }
+
+        var col = ball.GetComponent<Collider>() ?? ball.AddComponent<SphereCollider>();
         col.enabled = false;
-        
+        col.isTrigger = false;
+
         return ball;
     }
     
-// Replace the HandleAiming() method in your FrogShooter script with this:
-void HandleAiming()
-{
-    if (cameraController != null)
+    void HandleAiming()
     {
-        // Use camera controller's aiming system
-        Ray ray = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
-        RaycastHit hit;
-        
-        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+        Ray ray;
+        if (newCameraController != null)
         {
-            aimPoint = hit.point;
-            isAiming = true;
-            
-            if (aimReticle != null)
-            {
-                aimReticle.SetActive(true);
-                aimReticle.transform.position = hit.point;
-                aimReticle.transform.rotation = Quaternion.LookRotation(hit.normal);
-            }
+            ray = new Ray(newCameraController.GetCameraTransform().position,
+                          newCameraController.GetAimDirection());
         }
         else
         {
-            // Aim at screen center if no hit
-            Ray screenCenterRay = new Ray(cameraController.GetCameraTransform().position, cameraController.GetCameraForward());
-            aimPoint = screenCenterRay.GetPoint(maxAimDistance);
-            isAiming = true;
-            
-            if (aimReticle != null)
-            {
-                aimReticle.SetActive(false);
-            }
+            ray = playerCamera.ScreenPointToRay(Input.mousePosition);
         }
-    }
-    else
-    {
-        // Fallback to mouse position aiming
-        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        
-        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
+
+        if (Physics.Raycast(ray, out var hit, maxAimDistance, aimLayerMask))
         {
             aimPoint = hit.point;
             isAiming = true;
-            
             if (aimReticle != null)
             {
                 aimReticle.SetActive(true);
@@ -231,20 +177,18 @@ void HandleAiming()
         {
             aimPoint = ray.GetPoint(maxAimDistance);
             isAiming = true;
-            
-            if (aimReticle != null)
-            {
-                aimReticle.SetActive(false);
-            }
+            if (aimReticle != null) aimReticle.SetActive(false);
         }
+
+        aimDirection = (aimPoint - shootPosition.position).normalized;
+        Debug.DrawLine(ray.origin, aimPoint, Color.green);
+        Debug.DrawLine(shootPosition.position, aimPoint, Color.yellow);
     }
-    
-    aimDirection = (aimPoint - shootPosition.position).normalized;
-}
     
     void HandleShooting()
     {
-        if ((Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Mouse0)) && canShoot && currentBall != null)
+        if ((Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Mouse0))
+            && canShoot && currentBall != null)
         {
             Shoot();
         }
@@ -253,52 +197,49 @@ void HandleAiming()
     void Shoot()
     {
         canShoot = false;
-        
-        // Debug.Log($"Shoot Position Transform: {shootPosition}");
-        // Debug.Log($"Shoot Position World Pos: {shootPosition.position}");
-        // Debug.Log($"Current Ball Position Before: {currentBall.transform.position}");
-        
-        GameObject ballToShoot = currentBall;
-        
+        var ballToShoot = currentBall;
         ballToShoot.transform.SetParent(null);
-        
         ballToShoot.transform.position = shootPosition.position;
-        
-        Debug.Log($"Ball Position After Setting: {ballToShoot.transform.position}");
-        
-        Rigidbody rb = ballToShoot.GetComponent<Rigidbody>();
-        if (rb != null)
+
+        // ——— ADD BallBehavior so spline code sees it ———
+        var behavior = ballToShoot.AddComponent<BallBehavior>();
+        behavior.colorIndex = currentBallColor;
+
+        var rb = ballToShoot.GetComponent<Rigidbody>();
+        rb.isKinematic = false;
+
+        // ——— USE rb.velocity (not linearVelocity) ———
+        rb.linearVelocity = Vector3.zero;
+        rb.linearVelocity = aimDirection * shootForce;
+
+        // reduced gravity
+        if (gravityMultiplier < 1f)
         {
-            rb.isKinematic = false;
-            rb.linearVelocity = Vector3.zero; 
-            rb.linearVelocity = aimDirection * shootForce;
-            
-            Debug.Log($"Ball Velocity Set To: {rb.linearVelocity}");
+            var customGrav = ballToShoot.AddComponent<CustomGravity>();
+            customGrav.gravityMultiplier = gravityMultiplier;
+            rb.useGravity = false;
         }
-        
-        Collider col = ballToShoot.GetComponent<Collider>();
-        if (col != null)
+        else
         {
-            col.enabled = true;
+            rb.useGravity = true;
         }
-        
-        BallBehavior ballBehavior = ballToShoot.GetComponent<BallBehavior>();
-        if (ballBehavior == null)
-        {
-            ballBehavior = ballToShoot.AddComponent<BallBehavior>();
-        }
-        ballBehavior.colorIndex = currentBallColor;
-        
+
+        // enable collider explicitly as non-trigger
+        var col = ballToShoot.GetComponent<Collider>();
+        col.enabled   = true;
+        col.isTrigger = false;
+
+        ballToShoot.name = "Ball_Color" + currentBallColor;
+        Destroy(ballToShoot, 10f);
+
         if (shootEffect != null)
         {
             shootEffect.transform.position = shootPosition.position;
             shootEffect.Play();
         }
-        
         PlayShootSound();
-        
+
         currentBall = null;
-        
         StartCoroutine(ReloadBall());
     }
 
@@ -317,23 +258,19 @@ void HandleAiming()
         while (elapsed < moveTime)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / moveTime;
-            currentBall.transform.position = Vector3.Lerp(startPos, mouthPosition.position, t);
+            currentBall.transform.position =
+                Vector3.Lerp(startPos, mouthPosition.position, elapsed / moveTime);
             yield return null;
         }
 
         currentBall.transform.localPosition = Vector3.zero;
-
         nextBallColor = Random.Range(0, ballMaterials.Length);
         nextBall = CreateBall(nextBallColor, shoulderPosition.position);
         nextBall.transform.SetParent(shoulderPosition);
 
         PlayReloadSound();
-
         yield return new WaitForSeconds(shootCooldown);
         canShoot = true;
-        
-        
         ballUI.UpdateBallUI(currentBallColor, nextBallColor);
     }
     
@@ -341,91 +278,73 @@ void HandleAiming()
     {
         if (currentBall != null)
         {
-            // Floating animation - ball lonjong ?
             float floatY = Mathf.Sin(Time.time * ballFloatSpeed) * ballFloatAmount;
             currentBall.transform.localPosition = new Vector3(0, floatY, 0);
         }
-        
         if (nextBall != null)
-        {
-            // Slight rotation animation
             nextBall.transform.Rotate(Vector3.up, 30f * Time.deltaTime);
-        }
     }
     
     void UpdateTrajectory()
     {
         if (trajectoryLine == null || !isAiming || shootPosition == null) return;
-        
         Vector3 startPos = shootPosition.position;
         Vector3 velocity = aimDirection * shootForce;
-        
         trajectoryLine.positionCount = trajectoryPoints;
-        
+
         for (int i = 0; i < trajectoryPoints; i++)
         {
-            float time = i * trajectoryTimeStep;
-            Vector3 point = startPos + velocity * time;
-            point.y += Physics.gravity.y * 0.5f * time * time; 
-            
+            float t = i * trajectoryTimeStep;
+            Vector3 point = startPos + velocity * t;
+            point.y += Physics.gravity.y * gravityMultiplier * 0.5f * t * t;
             trajectoryLine.SetPosition(i, point);
-            
-            if (i > 0)
+            if (i > 0 &&
+                Physics.Linecast(trajectoryLine.GetPosition(i - 1), point, aimLayerMask))
             {
-                Vector3 lastPoint = trajectoryLine.GetPosition(i - 1);
-                if (Physics.Linecast(lastPoint, point, aimLayerMask))
-                {
-                    trajectoryLine.positionCount = i;
-                    break;
-                }
+                trajectoryLine.positionCount = i;
+                break;
             }
         }
     }
-    
+
     void PlayShootSound()
     {
         if (audioSource != null && shootSounds.Length > 0)
         {
-            AudioClip clip = shootSounds[Random.Range(0, shootSounds.Length)];
+            var clip = shootSounds[Random.Range(0, shootSounds.Length)];
             audioSource.pitch = Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(clip);
         }
     }
-    
+
     void PlayReloadSound()
     {
         if (audioSource != null && reloadSounds.Length > 0)
         {
-            AudioClip clip = reloadSounds[Random.Range(0, reloadSounds.Length)];
+            var clip = reloadSounds[Random.Range(0, reloadSounds.Length)];
             audioSource.pitch = Random.Range(0.95f, 1.05f);
             audioSource.volume = 0.5f;
             audioSource.PlayOneShot(clip);
         }
     }
-    
+
     void OnDrawGizmos()
     {
-        // Visualize shoot position in editor
         if (shootPosition != null)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(shootPosition.position, 0.1f);
-            
             if (isAiming)
             {
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawRay(shootPosition.position, aimDirection * 5f);
             }
         }
-        
-        // Visualize mouth position
         if (mouthPosition != null)
         {
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(mouthPosition.position, 0.08f);
         }
-        
-        // Visualize shoulder position
         if (shoulderPosition != null)
         {
             Gizmos.color = Color.blue;
@@ -434,23 +353,17 @@ void HandleAiming()
     }
 }
 
-
-public class BallBehavior : MonoBehaviour
+// Handle custom gravity multiplier
+public class CustomGravity : MonoBehaviour
 {
-    public int colorIndex;
-    public float lifetime = 10f;
-    
-    void Start()
+    public float gravityMultiplier = 1f;
+    private Rigidbody rb;
+
+    void Start() => rb = GetComponent<Rigidbody>();
+
+    void FixedUpdate()
     {
-        Destroy(gameObject, lifetime);
-    }
-    
-    void OnCollisionEnter(Collision collision)
-    {
-        // Here you would implement:
-        // - Check if hit another ball of same color
-        // - Snap to position in chain
-        // - Check for matches
-        // - etc.
+        if (rb != null)
+            rb.AddForce(Physics.gravity * gravityMultiplier, ForceMode.Acceleration);
     }
 }
