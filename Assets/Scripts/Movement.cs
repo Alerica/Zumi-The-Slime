@@ -25,10 +25,10 @@ public class ImprovedFrogMovement : MonoBehaviour
     public float maxHopSpeed = 8f;
 
     [Header("Dodge Settings")]
-    public float dodgeForce = 12f;             // Strength of the dodge impulse
-    public float dodgeDuration = 0.5f;         // How long the dodge lasts
-    public float dodgeCooldown = 1f;           // Time before you can dodge again
-    public Collider dodgeCollider;             // Collider to disable while dodging
+    public float dodgeForce = 12f;             
+    public float dodgeDuration = 0.5f;         
+    public float dodgeCooldown = 1f;           
+    public Collider dodgeCollider;             
 
     [Header("Ground Check")]
     public Transform groundCheck;

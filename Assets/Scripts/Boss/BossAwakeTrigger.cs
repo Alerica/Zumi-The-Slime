@@ -47,6 +47,8 @@ public class BossAwakeTrigger : MonoBehaviour
         {
             Gizmos.color = gizmoColor;
             
+            
+            // not neccecery 
             if (col is BoxCollider box)
             {
                 Matrix4x4 oldMatrix = Gizmos.matrix;
