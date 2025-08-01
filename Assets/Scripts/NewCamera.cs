@@ -20,6 +20,13 @@ public class NewCamera : MonoBehaviour
     public float aimTransitionSpeed = 5f;
     public float shootRotationSpeed = 8f;
     
+    [Header("Camera Distance Settings")]
+    public float defaultCameraDistance = 5f;
+    public float minCameraDistance = 2f;
+    public float maxCameraDistance = 15f;
+    public float scrollSensitivity = 2f;
+    public float distanceChangeSpeed = 8f;
+    
     private float mouseX;
     private float mouseY;
     private bool isAiming = false;
@@ -28,11 +35,19 @@ public class NewCamera : MonoBehaviour
     private Vector3 aimDirection;
     private Vector3 lastShootDirection;
     
+    // Distance control variables
+    private float currentCameraDistance;
+    private float targetCameraDistance;
+    
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         
         playerTransform = transform;
+        
+        // Initialize camera distance
+        currentCameraDistance = defaultCameraDistance;
+        targetCameraDistance = defaultCameraDistance;
         
         if (cameraTarget == null)
         {
@@ -66,8 +81,10 @@ public class NewCamera : MonoBehaviour
     void Update()
     {
         HandleMouseInput();
+        HandleScrollWheel();
         HandleAiming();
         HandleShooting();
+        UpdateCameraDistance();
         RotateCameraTarget();
         
         if (isAiming)
@@ -88,6 +105,50 @@ public class NewCamera : MonoBehaviour
         mouseX += mouseXInput;
         mouseY -= mouseYInput;
         mouseY = Mathf.Clamp(mouseY, verticalClampMin, verticalClampMax);
+    }
+    
+    void HandleScrollWheel()
+    {
+        // Only allow distance control when not aiming (free mode)
+        if (!isAiming)
+        {
+            float scrollInput = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scrollInput) > 0.01f)
+            {
+                targetCameraDistance -= scrollInput * scrollSensitivity;
+                targetCameraDistance = Mathf.Clamp(targetCameraDistance, minCameraDistance, maxCameraDistance);
+            }
+        }
+    }
+    
+    void UpdateCameraDistance()
+    {
+        // Smoothly interpolate to target distance
+        currentCameraDistance = Mathf.Lerp(currentCameraDistance, targetCameraDistance, distanceChangeSpeed * Time.deltaTime);
+        
+        // Apply distance to normal camera when not aiming
+        if (!isAiming && normalCamera != null)
+        {
+            // Try to get ThirdPersonFollow component
+            var thirdPersonFollow = normalCamera.GetComponent<CinemachineThirdPersonFollow>();
+            if (thirdPersonFollow != null)
+            {
+                thirdPersonFollow.CameraDistance = currentCameraDistance;
+            }
+            else
+            {
+                // Fallback: manually position camera relative to target
+                Vector3 offset = -cameraTarget.forward * currentCameraDistance;
+                
+                // Try to get the camera's transform component
+                var transposer = normalCamera.GetComponent<CinemachineTransposer>();
+                if (transposer != null)
+                {
+                    // transposer.FollowOffset = offset + Vector3.up * cameraHeight;
+                    transposer.m_FollowOffset = offset + Vector3.up * cameraHeight;
+                }
+            }
+        }
     }
     
     void HandleAiming()
@@ -129,7 +190,6 @@ public class NewCamera : MonoBehaviour
     {
         Vector3 cameraForward = GetCameraForward();
         cameraForward.y = 0;
-        // cameraForward.normalize();
         cameraForward = cameraForward.normalized;
         if (cameraForward != Vector3.zero)
         {
@@ -148,7 +208,6 @@ public class NewCamera : MonoBehaviour
     {
         Vector3 cameraForward = GetCameraForward();
         cameraForward.y = 0;
-        // cameraForward.normalize();
         cameraForward = cameraForward.normalized;
         
         if (cameraForward != Vector3.zero)
@@ -178,6 +237,17 @@ public class NewCamera : MonoBehaviour
                 }
             }
         }
+    }
+    
+    // Public methods for accessing camera distance
+    public float GetCurrentCameraDistance()
+    {
+        return currentCameraDistance;
+    }
+    
+    public void SetCameraDistance(float distance)
+    {
+        targetCameraDistance = Mathf.Clamp(distance, minCameraDistance, maxCameraDistance);
     }
     
     public bool IsAiming()

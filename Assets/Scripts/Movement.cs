@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class ImprovedFrogMovement : MonoBehaviour
 {
@@ -12,30 +13,36 @@ public class ImprovedFrogMovement : MonoBehaviour
     public float maxFallSpeed = 20f;
     public float rotationSpeed = 10f;
     public float inputSmoothTime = 0.1f;
-    
+
     [Header("Jump Settings")]
     public float jumpCooldown = 0.3f;
     public float coyoteTime = 0.2f;
     public float jumpBufferTime = 0.2f;
-    
+
     [Header("Hop Settings")]
     public float hopForce = 5f;
     public float hopCooldown = 0.1f;
     public float maxHopSpeed = 8f;
-    
+
+    [Header("Dodge Settings")]
+    public float dodgeForce = 12f;             
+    public float dodgeDuration = 0.5f;         
+    public float dodgeCooldown = 1f;           
+    public Collider dodgeCollider;             
+
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
-    
+
     [Header("Camera Reference")]
     public NewCamera cameraController;
-    
+
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip[] jumpSounds;
     public AudioClip[] landSounds;
-    
+
     private Rigidbody rb;
     private Vector3 moveDirection;
     private Vector3 smoothedMoveDirection;
@@ -47,33 +54,35 @@ public class ImprovedFrogMovement : MonoBehaviour
     private float coyoteTimer;
     private float jumpBufferTimer;
     private float jumpTimer;
-    
+
     private Vector3 originalScale;
     private bool isSquashing = false;
     private bool canRotateWithMovement = true;
-    
+
+    // Dodge internal state
+    private bool canDodge = true;
+    private bool isDodging = false;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         originalScale = transform.localScale;
-        
+
         rb.freezeRotation = false;
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-        
+
         if (cameraController == null)
-        {
             cameraController = GetComponent<NewCamera>();
-        }
-        
+
         if (groundCheck == null)
         {
-            GameObject groundCheckObj = new GameObject("GroundCheck");
-            groundCheckObj.transform.SetParent(transform);
-            groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
-            groundCheck = groundCheckObj.transform;
+            GameObject gc = new GameObject("GroundCheck");
+            gc.transform.SetParent(transform);
+            gc.transform.localPosition = new Vector3(0, -0.5f, 0);
+            groundCheck = gc.transform;
         }
     }
-    
+
     void Update()
     {
         HandleInput();
@@ -81,7 +90,7 @@ public class ImprovedFrogMovement : MonoBehaviour
         HandleTimers();
         HandleRotation();
     }
-    
+
     void FixedUpdate()
     {
         HandleMovement();
@@ -89,56 +98,56 @@ public class ImprovedFrogMovement : MonoBehaviour
         ApplyDrag();
         ApplyGravity();
     }
-    
+
     void HandleInput()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-        
-        Vector3 inputDirection = new Vector3(horizontal, 0, vertical).normalized;
-        
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 inputDir = new Vector3(h, 0, v).normalized;
+
         if (cameraController != null)
         {
-            Transform cameraTransform = cameraController.GetCameraTransform();
-            Vector3 cameraForward = cameraTransform.forward;
-            Vector3 cameraRight = cameraTransform.right;
-            
-            cameraForward.y = 0;
-            cameraRight.y = 0;
-            cameraForward.Normalize();
-            cameraRight.Normalize();
-            
-            moveDirection = (cameraForward * inputDirection.z + cameraRight * inputDirection.x).normalized;
+            Transform ct = cameraController.GetCameraTransform();
+            Vector3 f = ct.forward; f.y = 0; f.Normalize();
+            Vector3 r = ct.right;   r.y = 0; r.Normalize();
+            moveDirection = (f * inputDir.z + r * inputDir.x).normalized;
         }
         else
         {
-            moveDirection = inputDirection;
+            moveDirection = inputDir;
         }
-        
-        smoothedMoveDirection = Vector3.SmoothDamp(smoothedMoveDirection, moveDirection, ref moveVelocity, inputSmoothTime);
-        
+
+        smoothedMoveDirection = Vector3.SmoothDamp(
+            smoothedMoveDirection,
+            moveDirection,
+            ref moveVelocity,
+            inputSmoothTime
+        );
+
         if (Input.GetKeyDown(KeyCode.Space))
-        {
             jumpBufferTimer = jumpBufferTime;
+
+        // DODGE (now works even when standing still)
+        if (Input.GetKeyDown(KeyCode.LeftShift)
+            && canDodge
+            && !isDodging)
+        {
+            StartCoroutine(Dodge());
         }
     }
-    
+
     void GroundCheck()
     {
         wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-        
+
         if (isGrounded)
-        {
             coyoteTimer = coyoteTime;
-        }
-        
+
         if (!wasGrounded && isGrounded)
-        {
             OnLanding();
-        }
     }
-    
+
     void HandleTimers()
     {
         if (coyoteTimer > 0) coyoteTimer -= Time.deltaTime;
@@ -146,174 +155,195 @@ public class ImprovedFrogMovement : MonoBehaviour
         if (!canJump) jumpTimer -= Time.deltaTime;
         if (jumpTimer <= 0) canJump = true;
     }
-    
+
     void HandleRotation()
     {
-        if (cameraController != null && !cameraController.IsAiming() && smoothedMoveDirection.magnitude > 0.1f && canRotateWithMovement)
+        if (cameraController != null
+            && !cameraController.IsAiming()
+            && smoothedMoveDirection.magnitude > 0.1f
+            && canRotateWithMovement)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(smoothedMoveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            Quaternion target = Quaternion.LookRotation(smoothedMoveDirection);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                target,
+                rotationSpeed * Time.deltaTime
+            );
         }
     }
-    
+
     public void SetMovementRotationEnabled(bool enabled)
     {
         canRotateWithMovement = enabled;
     }
-    
+
     void HandleMovement()
     {
+        if (isDodging) return;
+
         if (smoothedMoveDirection.magnitude > 0.1f)
         {
             if (isGrounded)
             {
                 if (canHop && rb.linearVelocity.magnitude < maxHopSpeed)
                 {
-                    Vector3 hopDirection = smoothedMoveDirection * hopForce;
-                    hopDirection.y = hopForce * 0.3f;
-                    
-                    rb.AddForce(hopDirection, ForceMode.Impulse);
-                    
+                    Vector3 hop = smoothedMoveDirection * hopForce;
+                    hop.y = hopForce * 0.3f;
+                    rb.AddForce(hop, ForceMode.Impulse);
                     StartCoroutine(HopCooldown());
-                    
+
                     if (Mathf.Abs(smoothedMoveDirection.x) > Mathf.Abs(smoothedMoveDirection.z))
-                    {
                         DoSquashStretch(0.9f, 1.1f, 0.05f);
-                    }
                     else
-                    {
                         DoSquashStretch(0.8f, 1.2f, 0.05f);
-                    }
                 }
-                else if (smoothedMoveDirection.magnitude > 0.1f)
+                else
                 {
-                    Vector3 targetVelocity = smoothedMoveDirection * moveSpeed * 0.3f;
-                    targetVelocity.y = rb.linearVelocity.y;
-                    rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, Time.fixedDeltaTime * 10f);
+                    Vector3 targetV = smoothedMoveDirection * moveSpeed * 0.3f;
+                    targetV.y = rb.linearVelocity.y;
+                    rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetV, Time.fixedDeltaTime * 10f);
                 }
             }
             else
             {
-                float currentMoveSpeed = moveSpeed * airControl;
-                rb.AddForce(smoothedMoveDirection * currentMoveSpeed * 10f, ForceMode.Force);
+                rb.AddForce(smoothedMoveDirection * moveSpeed * airControl * 10f, ForceMode.Force);
             }
         }
     }
-    
+
     void HandleJumping()
     {
-        bool canCoyoteJump = coyoteTimer > 0;
-        bool hasJumpBuffer = jumpBufferTimer > 0;
-        
-        if (hasJumpBuffer && canCoyoteJump && canJump)
-        {
+        if (jumpBufferTimer > 0 && coyoteTimer > 0 && canJump)
             Jump();
-        }
     }
-    
+
     void Jump()
     {
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        
+
         jumpBufferTimer = 0;
         coyoteTimer = 0;
         canJump = false;
         jumpTimer = jumpCooldown;
-        
+
         DoSquashStretch(0.8f, 1.2f, 0.1f);
         PlayJumpSound();
     }
-    
+
     void OnLanding()
     {
         canJump = true;
         DoSquashStretch(1.2f, 0.8f, 0.15f);
         PlayLandSound();
     }
-    
+
     void ApplyDrag()
     {
         rb.linearDamping = isGrounded ? groundDrag : airDrag;
     }
-    
+
     void ApplyGravity()
     {
         if (!isGrounded)
         {
             rb.AddForce(Vector3.down * gravityMultiplier * Physics.gravity.magnitude, ForceMode.Acceleration);
-            
             if (rb.linearVelocity.y < -maxFallSpeed)
-            {
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, -maxFallSpeed, rb.linearVelocity.z);
-            }
         }
     }
-    
-    void DoSquashStretch(float scaleX, float scaleY, float duration)
+
+    void DoSquashStretch(float sx, float sy, float duration)
     {
         if (!isSquashing)
-        {
-            StartCoroutine(SquashStretchCoroutine(scaleX, scaleY, duration));
-        }
+            StartCoroutine(SquashStretchCoroutine(sx, sy, duration));
     }
-    
-    System.Collections.IEnumerator SquashStretchCoroutine(float scaleX, float scaleY, float duration)
+
+    IEnumerator SquashStretchCoroutine(float sx, float sy, float duration)
     {
         isSquashing = true;
-        Vector3 targetScale = new Vector3(scaleX, scaleY, scaleX);
-        Vector3 startScale = transform.localScale;
-        
-        float elapsed = 0f;
-        while (elapsed < duration)
+        Vector3 target = new Vector3(sx, sy, sx);
+        Vector3 start = transform.localScale;
+        float t = 0f;
+
+        while (t < duration)
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            transform.localScale = Vector3.Lerp(startScale, targetScale, t);
+            t += Time.deltaTime;
+            transform.localScale = Vector3.Lerp(start, target, t / duration);
             yield return null;
         }
-        
-        elapsed = 0f;
-        startScale = transform.localScale;
-        while (elapsed < duration)
+
+        t = 0f;
+        start = transform.localScale;
+        while (t < duration)
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            transform.localScale = Vector3.Lerp(startScale, originalScale, t);
+            t += Time.deltaTime;
+            transform.localScale = Vector3.Lerp(start, originalScale, t / duration);
             yield return null;
         }
-        
+
         transform.localScale = originalScale;
         isSquashing = false;
     }
-    
-    System.Collections.IEnumerator HopCooldown()
+
+    IEnumerator HopCooldown()
     {
         canHop = false;
         yield return new WaitForSeconds(hopCooldown);
         canHop = true;
     }
-    
+
+    IEnumerator Dodge()
+    {
+        canDodge = false;
+        isDodging = true;
+
+        // invulnerable
+        if (dodgeCollider != null)
+            dodgeCollider.enabled = false;
+
+        // lock rotation
+        canRotateWithMovement = false;
+
+        // pick a dodge direction: input or forward
+        Vector3 dir = smoothedMoveDirection.magnitude > 0.1f
+                      ? smoothedMoveDirection.normalized
+                      : transform.forward;
+
+        // reset horizontal speed, then impulse
+        rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+        Vector3 impulse = dir * dodgeForce + Vector3.up * (dodgeForce * 0.2f);
+        rb.AddForce(impulse, ForceMode.Impulse);
+
+        // optional: play dodge sound/animation here
+
+        yield return new WaitForSeconds(dodgeDuration);
+
+        // end invuln & restore rotation
+        if (dodgeCollider != null)
+            dodgeCollider.enabled = true;
+        canRotateWithMovement = true;
+        isDodging = false;
+
+        // cooldown
+        yield return new WaitForSeconds(dodgeCooldown);
+        canDodge = true;
+    }
+
     void PlayJumpSound()
     {
         if (audioSource && jumpSounds.Length > 0)
-        {
-            AudioClip clip = jumpSounds[Random.Range(0, jumpSounds.Length)];
-            audioSource.pitch = Random.Range(0.9f, 1.1f);
-            audioSource.PlayOneShot(clip);
-        }
+            audioSource.PlayOneShot(jumpSounds[Random.Range(0, jumpSounds.Length)],
+                                     Random.Range(0.9f, 1.1f));
     }
-    
+
     void PlayLandSound()
     {
         if (audioSource && landSounds.Length > 0)
-        {
-            AudioClip clip = landSounds[Random.Range(0, landSounds.Length)];
-            audioSource.pitch = Random.Range(0.8f, 1.0f);
-            audioSource.PlayOneShot(clip);
-        }
+            audioSource.PlayOneShot(landSounds[Random.Range(0, landSounds.Length)],
+                                     Random.Range(0.8f, 1.0f));
     }
-    
+
     void OnDrawGizmosSelected()
     {
         if (groundCheck != null)

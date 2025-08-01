@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 [RequireComponent(typeof(Collider))]
-public class BossController : MonoBehaviour
+public class BossController2 : MonoBehaviour
 {
     public float followSpeed = 3f;
     public float stopDistance = 5f;

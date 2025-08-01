@@ -8,11 +8,11 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Camera
+  - 
   - Water
   - UI
   - Ground
-  - Terrain
+  - Char
   - 
   - 
   - 
