@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class StickyPlatform : MonoBehaviour
 {
-    // Add to Player (NOT TO PLATFORM)
-    private MovingPlatform currentPlatform;
     private Rigidbody rb;
+    private Transform currentPlatform;
+    private Vector3 lastPlatformPosition;
 
     void Awake()
     {
@@ -15,21 +15,21 @@ public class StickyPlatform : MonoBehaviour
     {
         if (currentPlatform != null)
         {
-            rb.position += currentPlatform.Velocity * Time.fixedDeltaTime;
+            Vector3 platformMovement = currentPlatform.position - lastPlatformPosition;
+            rb.position += platformMovement;
+            lastPlatformPosition = currentPlatform.position;
         }
     }
 
     void OnCollisionStay(Collision collision)
     {
-        if (collision.collider.TryGetComponent(out MovingPlatform platform))
-        {
-            currentPlatform = platform;
-        }
+        currentPlatform = collision.collider.transform;
+        lastPlatformPosition = currentPlatform.position;
     }
 
     void OnCollisionExit(Collision collision)
     {
-        if (collision.collider.GetComponent<MovingPlatform>() == currentPlatform)
+        if (collision.collider.transform == currentPlatform)
         {
             currentPlatform = null;
         }
