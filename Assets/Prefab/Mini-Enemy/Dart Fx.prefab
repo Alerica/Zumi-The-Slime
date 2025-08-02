@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 4905916682273566003}
   - component: {fileID: 1986064977561655834}
   - component: {fileID: 9122610231604298489}
+  - component: {fileID: 7148072931042972386}
   m_Layer: 0
   m_Name: Dart Fx
   m_TagString: Untagged
@@ -199,3 +200,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damageAmount: 1
+--- !u!65 &7148072931042972386
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9082935887869055759}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.86544514, y: 1.2156211, z: 1.6364994}
+  m_Center: {x: 0.055348873, y: 0.035032332, z: 0.3182497}

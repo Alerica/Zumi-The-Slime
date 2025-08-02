@@ -58,6 +58,9 @@ public class SplineBallSpawner : MonoBehaviour
     private float[] splineSampleDistances;
     private const int SPLINE_SAMPLE_COUNT = 1000; // Much higher resolution
 
+    [Header("Enemy Settings")] // Only required if set on enemy
+    public EnemyHealth enemyHealth; 
+
     [Serializable]
     public class SplineBall
     {
@@ -492,6 +495,11 @@ public class SplineBallSpawner : MonoBehaviour
         foreach (int i in indices)
             if (i < ballChain.Count && ballChain[i].distanceOnSpline >= 0f)
                 ballChain[i].isBeingDestroyed = true;
+
+        if(enemyHealth != null)
+        {
+            enemyHealth.TakeDamage(indices.Count);
+        }
 
         float elapsed = 0f;
         while (elapsed < destroyAnimationTime)
