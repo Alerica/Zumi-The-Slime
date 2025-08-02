@@ -5,15 +5,27 @@ using System.Collections;
 
 public class TutorialManager : MonoBehaviour
 {
-    [SerializeField] private TMP_Text tutorialText;
-    [SerializeField] private TMP_Text distanceText;
-    [SerializeField] private float typingSpeed = 0.05f;
+    
     private Coroutine typingCoroutine;
     public List<TutorialStep> steps = new List<TutorialStep>();
     private int currentStepIndex = 0;
     private bool hasMoved = false;
     private float waitTimer = 0f;
     private bool isWaiting = false;
+
+    [Header("State")]
+    public static bool isInputLocked = false;
+    public float startDelay = 0.5f; // Delay before starting the tutorial text typing
+
+    [Header("UI Elements")]
+
+    [SerializeField] private TMP_Text tutorialText;
+    [SerializeField] private TMP_Text distanceText;
+    [SerializeField] private float typingSpeed = 0.05f;
+    [SerializeField] private GameObject choicePanel;
+    [SerializeField] private GameObject choiceButtonPrefab;
+
+
 
     [Header("Customization")]
     public float minimumDistanceToTrigger = 5f; // Minimum distance to trigger a checkpoint
@@ -119,6 +131,7 @@ public class TutorialManager : MonoBehaviour
 
     IEnumerator TypeText(string fullText)
     {
+        yield return new WaitForSeconds(startDelay);
         tutorialText.text = "";
         foreach (char letter in fullText)
         {

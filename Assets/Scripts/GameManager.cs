@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -16,6 +17,10 @@ public class GameManager : MonoBehaviour
     [Header("Player Stats")]
     public int deathCount { get; private set; }
     public int reviveCount { get; private set; }
+
+    [Header("Fade Effect")]
+    public CanvasGroup fadePanel;
+    public float fadeDuration = 1f;
 
 
 
@@ -64,18 +69,55 @@ public class GameManager : MonoBehaviour
 
     public void KillPlayer()
     {
-        if (slimeHealth == null) 
+        if (slimeHealth == null)
         {
             Debug.LogWarning("SlimeHealth is not assigned.");
             return;
         }
 
+        StartCoroutine(HandlePlayerDeathAndRevive());
+    }
+
+    private IEnumerator HandlePlayerDeathAndRevive()
+    {
+        Debug.Log("Player has died. Starting death sequence...");
+        yield return StartCoroutine(FadeInPanel());
+
         slimeHealth.TakeDamage(slimeHealth.maxHealth);
         RegisterDeath();
 
-        RevivePlayer();
+        yield return new WaitForSeconds(3f); // small pause before revive
+        RevivePlayer(); // this includes setting position
+
         RegisterRevive();
+
+        yield return StartCoroutine(FadeOutPanel());
     }
+
+    IEnumerator FadeInPanel()
+    {
+        float timer = 0f;
+        while (timer < fadeDuration)
+        {
+            fadePanel.alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        fadePanel.alpha = 1f;
+    }
+
+    IEnumerator FadeOutPanel()
+    {
+        float timer = 0f;
+        while (timer < fadeDuration)
+        {
+            fadePanel.alpha = Mathf.Lerp(1f, 0f, timer / fadeDuration);
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        fadePanel.alpha = 0f;
+    }
+
 
     public void RevivePlayer()
     {

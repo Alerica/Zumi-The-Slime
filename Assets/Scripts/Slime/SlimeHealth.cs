@@ -50,7 +50,7 @@ public class SlimeHealth : MonoBehaviour
         IsDead = true;
         Debug.Log($"{gameObject.name} has died.");
 
-        if(GameManager.Instance.autoRevive) GameManager.Instance.RevivePlayer();
+        if(GameManager.Instance.autoRevive) GameManager.Instance.KillPlayer();
     }
 
     public void Revive()
@@ -62,6 +62,6 @@ public class SlimeHealth : MonoBehaviour
         if (healthUI != null)
             healthUI.UpdateHealth((float)currentHealth / maxHealth);
 
-        Debug.Log($"{gameObject.name} has been revived.");
+        Debug.Log($"{gameObject.name} has been revived. (SLIME HEALTH SCRIPT)");
     }
 }

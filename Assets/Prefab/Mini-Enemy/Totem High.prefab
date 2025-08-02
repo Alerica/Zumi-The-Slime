@@ -414,7 +414,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4721908e51b03e4e89cb4957363b1e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 30
+  maxHealth: 20
   healthBar: {fileID: 5144925113456785759}
 --- !u!114 &9021747479054454941
 MonoBehaviour:
@@ -435,7 +435,7 @@ MonoBehaviour:
   smashDamage: 4
   smashIndicatorPrefab: {fileID: 2913293027592889553, guid: 89f16fdc156c6594f9ba32d133677aed, type: 3}
   extraGravity: 145
-  totemProjectile: {fileID: 0}
+  totemProjectile: {fileID: 6285986911874934856}
 --- !u!114 &5144925113456785759
 MonoBehaviour:
   m_ObjectHideFlags: 0
