@@ -86,6 +86,9 @@ public class BossController1 : MonoBehaviour
     [SerializeField] private AudioClip laserChargeSound;
     [SerializeField] private AudioClip laserFireSound;
 
+    [Header("other")] 
+    [SerializeField] private float awakeTime = 3f; 
+
     private Rigidbody rb;
     private Animator animator;
     private BossState currentState = BossState.Dormant;
@@ -339,50 +342,110 @@ public class BossController1 : MonoBehaviour
         }
     }
 
+    // private IEnumerator PerformDashAttack()
+    // {
+    //     isPerformingAttack = true;
+    //     lastDashTime = Time.time;
+    //     SetState(BossState.DashStart);
+    //     Vector3 dashDirection = (player.position - transform.position).normalized;
+    //     dashDirection.y = 0;
+    //     CreateDashIndicator(dashDirection);
+    //     PlaySound(dashWindupSound);
+    //     if (dashChargeEffect != null) dashChargeEffect.Play();
+    //     float windupTimer = 0;
+    //     while (windupTimer < dashWindupTime)
+    //     {
+    //         windupTimer += Time.deltaTime;
+    //         if (currentDashIndicator != null)
+    //             UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
+    //         FacePlayer();
+    //         dashDirection = (player.position - transform.position).normalized;
+    //         dashDirection.y = 0;
+    //         yield return null;
+    //     }
+    //     SetState(BossState.DashOngoing);
+    //     SetActiveCollider(ColliderType.Dash);
+    //     DestroyIndicator(currentDashIndicator);
+    //     PlaySound(dashSound);
+    //     if (dashTrail != null) dashTrail.enabled = true;
+    //     Vector3 startPos = transform.position;
+    //     Vector3 endPos = startPos + dashDirection * dashDistance;
+    //     float dashTimer = 0;
+    //     float dashTime = dashDistance / dashSpeed;
+    //     while (dashTimer < dashTime)
+    //     {
+    //         dashTimer += Time.deltaTime;
+    //         transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
+    //         yield return null;
+    //     }
+    //     SetState(BossState.DashEnd);
+    //     SetActiveCollider(ColliderType.Normal);
+    //     if (dashTrail != null) dashTrail.enabled = false;
+    //     yield return new WaitForSeconds(0.5f);
+    //     SetState(BossState.Idle);
+    //     isPerformingAttack = false;
+    // }
+    //
+    
     private IEnumerator PerformDashAttack()
+{
+    isPerformingAttack = true;
+    lastDashTime = Time.time;
+    SetState(BossState.DashStart);
+    
+    // Lock the dash direction at the start - no more tracking after this point
+    Vector3 dashDirection = (player.position - transform.position).normalized;
+    dashDirection.y = 0;
+    
+    // Store the locked rotation for the dash
+    Quaternion lockedRotation = Quaternion.LookRotation(dashDirection);
+    transform.rotation = lockedRotation; // Face the direction immediately
+    
+    CreateDashIndicator(dashDirection);
+    PlaySound(dashWindupSound);
+    if (dashChargeEffect != null) dashChargeEffect.Play();
+    
+    float windupTimer = 0;
+    while (windupTimer < dashWindupTime)
     {
-        isPerformingAttack = true;
-        lastDashTime = Time.time;
-        SetState(BossState.DashStart);
-        Vector3 dashDirection = (player.position - transform.position).normalized;
-        dashDirection.y = 0;
-        CreateDashIndicator(dashDirection);
-        PlaySound(dashWindupSound);
-        if (dashChargeEffect != null) dashChargeEffect.Play();
-        float windupTimer = 0;
-        while (windupTimer < dashWindupTime)
-        {
-            windupTimer += Time.deltaTime;
-            if (currentDashIndicator != null)
-                UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
-            FacePlayer();
-            dashDirection = (player.position - transform.position).normalized;
-            dashDirection.y = 0;
-            yield return null;
-        }
-        SetState(BossState.DashOngoing);
-        SetActiveCollider(ColliderType.Dash);
-        DestroyIndicator(currentDashIndicator);
-        PlaySound(dashSound);
-        if (dashTrail != null) dashTrail.enabled = true;
-        Vector3 startPos = transform.position;
-        Vector3 endPos = startPos + dashDirection * dashDistance;
-        float dashTimer = 0;
-        float dashTime = dashDistance / dashSpeed;
-        while (dashTimer < dashTime)
-        {
-            dashTimer += Time.deltaTime;
-            transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
-            yield return null;
-        }
-        SetState(BossState.DashEnd);
-        SetActiveCollider(ColliderType.Normal);
-        if (dashTrail != null) dashTrail.enabled = false;
-        yield return new WaitForSeconds(0.5f);
-        SetState(BossState.Idle);
-        isPerformingAttack = false;
+        windupTimer += Time.deltaTime;
+        if (currentDashIndicator != null)
+            UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
+        
+        // Keep the boss locked in the dash direction - no more FacePlayer() calls
+        transform.rotation = lockedRotation;
+        
+        yield return null;
     }
-
+    
+    SetState(BossState.DashOngoing);
+    SetActiveCollider(ColliderType.Dash);
+    DestroyIndicator(currentDashIndicator);
+    PlaySound(dashSound);
+    if (dashTrail != null) dashTrail.enabled = true;
+    
+    Vector3 startPos = transform.position;
+    Vector3 endPos = startPos + dashDirection * dashDistance;
+    float dashTimer = 0;
+    float dashTime = dashDistance / dashSpeed;
+    
+    while (dashTimer < dashTime)
+    {
+        dashTimer += Time.deltaTime;
+        transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
+        // Keep rotation locked during dash execution too
+        transform.rotation = lockedRotation;
+        yield return null;
+    }
+    
+    SetState(BossState.DashEnd);
+    SetActiveCollider(ColliderType.Normal);
+    if (dashTrail != null) dashTrail.enabled = false;
+    
+    yield return new WaitForSeconds(0.5f);
+    SetState(BossState.Idle);
+    isPerformingAttack = false;
+}
     private IEnumerator PerformJumpAttack()
     {
         isPerformingAttack = true;
@@ -560,7 +623,7 @@ public class BossController1 : MonoBehaviour
     private IEnumerator AwakeSequence()
     {
         SetState(BossState.Awakening);
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(awakeTime);
         isAwake = true;
         SetState(BossState.Idle);
     }
