@@ -10,15 +10,25 @@ public class DealDamageToPlayer : MonoBehaviour
 
         if (player != null)
         {
-            SlimeHealth slimeHealth = player.GetComponentInChildren<SlimeHealth>();
-            if (slimeHealth != null)
+            // Check immunity in movement script
+            ImprovedFrogMovement movement = player.GetComponent<ImprovedFrogMovement>();
+            if (movement != null && movement.isImmune)
             {
-                Debug.Log($"Dealing {damageAmount} damage to player.");
-                slimeHealth.TakeDamage(damageAmount);
+                Debug.Log("Player is immune! Damage blocked.");
+                
             }
             else
             {
-                Debug.LogWarning("SlimeHealth component not found on player or its children.");
+                SlimeHealth slimeHealth = player.GetComponentInChildren<SlimeHealth>();
+                if (slimeHealth != null)
+                {
+                    Debug.Log($"Dealing {damageAmount} damage to player.");
+                    slimeHealth.TakeDamage(damageAmount);
+                }
+                else
+                {
+                    Debug.LogWarning("SlimeHealth component not found on player or its children.");
+                }
             }
         }
         else

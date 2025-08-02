@@ -28,7 +28,13 @@ public class ImprovedFrogMovement : MonoBehaviour
     public float dodgeForce = 12f;             
     public float dodgeDuration = 0.5f;         
     public float dodgeCooldown = 1f;           
-    public Collider dodgeCollider;             
+    public Collider dodgeCollider;
+
+    [Header("Immunity Settings")]
+    public bool isImmune = false;  // damage scripts can check this
+    // [SerializeField] private Renderer playerRenderer;
+    // [SerializeField] private Color immuneColor = Color.cyan;
+    // [SerializeField] private float blinkSpeed = 10f;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -63,6 +69,11 @@ public class ImprovedFrogMovement : MonoBehaviour
     private bool canDodge = true;
     private bool isDodging = false;
 
+    // Immunity internal state
+    private Coroutine immunityCoroutine;
+    private Coroutine blinkCoroutine;
+    private Color originalColor;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -81,6 +92,8 @@ public class ImprovedFrogMovement : MonoBehaviour
             gc.transform.localPosition = new Vector3(0, -0.5f, 0);
             groundCheck = gc.transform;
         }
+
+        
     }
 
     void Update()
@@ -127,7 +140,7 @@ public class ImprovedFrogMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
             jumpBufferTimer = jumpBufferTime;
 
-        // DODGE (now works even when standing still)
+        // DODGE with immunity
         if (Input.GetKeyDown(KeyCode.LeftShift)
             && canDodge
             && !isDodging)
@@ -293,14 +306,47 @@ public class ImprovedFrogMovement : MonoBehaviour
         canHop = true;
     }
 
+    // ===== IMMUNITY SYSTEM BUILT INTO MOVEMENT =====
+    
+    /// <summary>
+    /// Set immunity state - can be called by other scripts too
+    /// </summary>
+    public void SetImmunity(bool immune, float duration = 0f)
+    {
+        if (immunityCoroutine != null)
+        {
+            StopCoroutine(immunityCoroutine);
+            immunityCoroutine = null;
+        }
+
+        isImmune = immune;
+        Debug.Log($"Player immunity: {(immune ? "ON" : "OFF")}");
+
+        if (immune && duration > 0)
+        {
+            immunityCoroutine = StartCoroutine(TemporaryImmunity(duration));
+        }
+
+    }
+
+    private IEnumerator TemporaryImmunity(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        isImmune = false;
+        Debug.Log("Player immunity ended.");
+    }
+
+
+
+     // ===== DODGE WITH IMMUNITY =====
+    
     IEnumerator Dodge()
     {
         canDodge = false;
         isDodging = true;
 
-        // invulnerable
-        if (dodgeCollider != null)
-            dodgeCollider.enabled = false;
+        // GRANT IMMUNITY DURING DODGE
+        SetImmunity(true, dodgeDuration);
 
         // lock rotation
         canRotateWithMovement = false;
@@ -315,13 +361,10 @@ public class ImprovedFrogMovement : MonoBehaviour
         Vector3 impulse = dir * dodgeForce + Vector3.up * (dodgeForce * 0.2f);
         rb.AddForce(impulse, ForceMode.Impulse);
 
-        // optional: play dodge sound/animation here
-
         yield return new WaitForSeconds(dodgeDuration);
+        
 
-        // end invuln & restore rotation
-        if (dodgeCollider != null)
-            dodgeCollider.enabled = true;
+        // restore rotation (immunity ends automatically)
         canRotateWithMovement = true;
         isDodging = false;
 
@@ -351,5 +394,11 @@ public class ImprovedFrogMovement : MonoBehaviour
             Gizmos.color = isGrounded ? Color.green : Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
+    }
+
+    void OnDestroy()
+    {
+        if (immunityCoroutine != null) StopCoroutine(immunityCoroutine);
+        if (blinkCoroutine != null) StopCoroutine(blinkCoroutine);
     }
 }
