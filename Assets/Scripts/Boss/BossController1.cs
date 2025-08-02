@@ -431,10 +431,15 @@ public class BossController1 : MonoBehaviour
     
     while (dashTimer < dashTime)
     {
+        // dashTimer += Time.deltaTime;
+        // transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
+        // // Keep rotation locked during dash execution too
+        // transform.rotation = lockedRotation;
+        // yield return null;
         dashTimer += Time.deltaTime;
-        transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
-        // Keep rotation locked during dash execution too
-        transform.rotation = lockedRotation;
+        float t = dashSpeedCurve.Evaluate(dashTimer / dashTime);
+        Vector3 targetPos = Vector3.Lerp(startPos, endPos, t);
+        rb.MovePosition(targetPos);
         yield return null;
     }
     

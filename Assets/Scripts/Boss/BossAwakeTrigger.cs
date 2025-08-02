@@ -9,6 +9,10 @@ public class BossAwakeTrigger : MonoBehaviour
     [SerializeField] private bool triggerOnce = true;
     [SerializeField] private string playerTag = "Player";
     
+    [Header("Objects To Activate")]
+    [Tooltip("Assign all GameObjects you want to activate when the trigger is entered")]
+    [SerializeField] private GameObject[] objectsToActivate;
+    
     [Header("Visual Feedback")]
     [SerializeField] private bool showGizmos = true;
     [SerializeField] private Color gizmoColor = new Color(1f, 0f, 0f, 0.3f);
@@ -21,19 +25,34 @@ public class BossAwakeTrigger : MonoBehaviour
         
         if (other.CompareTag(playerTag))
         {
+            // Wake up the boss
             if (bossController != null)
             {
                 bossController.AwakeBoss();
-                hasTriggered = true;
-                
-                if (triggerOnce)
-                {
-                    GetComponent<Collider>().enabled = false;
-                }
             }
             else
             {
                 Debug.LogError("Boss Controller reference is missing!");
+            }
+            
+            // Activate all assigned GameObjects
+            if (objectsToActivate != null)
+            {
+                foreach (GameObject obj in objectsToActivate)
+                {
+                    if (obj != null)
+                        obj.SetActive(true);
+                }
+            }
+            
+            hasTriggered = true;
+            
+            // Disable the collider if this should only happen once
+            if (triggerOnce)
+            {
+                Collider col = GetComponent<Collider>();
+                if (col != null)
+                    col.enabled = false;
             }
         }
     }
@@ -47,8 +66,6 @@ public class BossAwakeTrigger : MonoBehaviour
         {
             Gizmos.color = gizmoColor;
             
-            
-            // not neccecery 
             if (col is BoxCollider box)
             {
                 Matrix4x4 oldMatrix = Gizmos.matrix;

@@ -101,7 +101,7 @@ public class ImprovedFrogMovement : MonoBehaviour
         HandleInput();
         GroundCheck();
         HandleTimers();
-        HandleRotation();
+        // HandleRotation();
     }
 
     void FixedUpdate()
@@ -110,6 +110,14 @@ public class ImprovedFrogMovement : MonoBehaviour
         HandleJumping();
         ApplyDrag();
         ApplyGravity();
+        if (!isDodging && canRotateWithMovement && smoothedMoveDirection.sqrMagnitude > 0.01f)
+        {
+            Quaternion target = Quaternion.LookRotation(smoothedMoveDirection, Vector3.up);
+            // Slerp in physics time
+            Quaternion newRot = Quaternion.Slerp(rb.rotation, target, rotationSpeed * Time.fixedDeltaTime);
+            rb.MoveRotation(newRot);
+        }
+
     }
 
     void HandleInput()
