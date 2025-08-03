@@ -32,6 +32,7 @@ public class FrogShooter : MonoBehaviour
     
     [Header("Effects")]
     public ParticleSystem shootEffect;
+    public GameObject breakEffectPrefab; 
     public AudioSource audioSource;
     public AudioClip[] shootSounds;
     public AudioClip[] reloadSounds;
@@ -204,6 +205,7 @@ public class FrogShooter : MonoBehaviour
         // ——— ADD BallBehavior so spline code sees it ———
         var behavior = ballToShoot.AddComponent<BallBehavior>();
         behavior.colorIndex = currentBallColor;
+        behavior.breakEffectPrefab = breakEffectPrefab;
 
         var rb = ballToShoot.GetComponent<Rigidbody>();
         rb.isKinematic = false;
