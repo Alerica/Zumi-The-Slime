@@ -624,7 +624,9 @@ public class SplineBallSpawner : MonoBehaviour
             // Draw insertion order
             Gizmos.color = Color.white;
             Vector3 labelPos = ball.worldPosition + Vector3.up * 0.3f;
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(labelPos, i.ToString());
+#endif
         }
     }
 
