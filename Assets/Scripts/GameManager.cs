@@ -28,6 +28,7 @@ public class GameManager : MonoBehaviour
     public AudioClip damageSound;
     public AudioClip healSound;
 
+    public bool lockedMovement = false; 
     void Awake()
     {
         if (Instance == null)
@@ -83,6 +84,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        lockedMovement = true; // Lock movement during death sequence
         StartCoroutine(HandlePlayerDeathAndRevive());
     }
 
@@ -177,6 +179,7 @@ public class GameManager : MonoBehaviour
         slimeHealth.Revive();
         RegisterRevive();
         slimeHealth.transform.position = currentCheckpoint.transform.position;
+        lockedMovement = false; // Unlock movement after revive
         Debug.Log("Player has been revived at checkpoint.");
     }
 }

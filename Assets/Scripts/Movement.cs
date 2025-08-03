@@ -123,6 +123,10 @@ public class ImprovedFrogMovement : MonoBehaviour
 
     void HandleInput()
     {
+        if(GameManager.Instance)
+        {
+            if (GameManager.Instance.lockedMovement) return; 
+        }
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         Vector3 inputDir = new Vector3(h, 0, v).normalized;

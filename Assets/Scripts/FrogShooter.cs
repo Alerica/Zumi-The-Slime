@@ -188,6 +188,11 @@ public class FrogShooter : MonoBehaviour
     
     void HandleShooting()
     {
+        if(GameManager.Instance)
+        {
+            if (GameManager.Instance.lockedMovement) return; 
+        }
+        
         if ((Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Mouse0))
             && canShoot && currentBall != null)
         {

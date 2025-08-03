@@ -36,6 +36,10 @@ public class SimpleDialogPanel : MonoBehaviour
 
     IEnumerator RunDialog()
     {
+        if(GameManager.Instance)
+        {
+            GameManager.Instance.lockedMovement = true; 
+        }
         canvasGroup.alpha = 1;
         canvasGroup.blocksRaycasts = true;
         canvasGroup.interactable = true;
@@ -63,6 +67,12 @@ public class SimpleDialogPanel : MonoBehaviour
         }
 
         canvasGroup.alpha = 0f;
+
+        if(GameManager.Instance)
+        {
+            GameManager.Instance.lockedMovement = false; 
+        }
+        
         gameObject.SetActive(false);
     }
 
