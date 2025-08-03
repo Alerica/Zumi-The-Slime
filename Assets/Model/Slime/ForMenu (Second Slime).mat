@@ -44,17 +44,17 @@ Material:
     m_Ints: []
     m_Floats:
     - _CellDensity: 3
-    - _Power: 1.28
+    - _Power: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _scale: 0
-    - _slope: -4.44
+    - _slope: 0.7
     - _speed: 0.1
     - _strength: 0.05
-    - _treshold: -0.18
+    - _treshold: -0.5
     m_Colors:
-    - _color: {r: 0.4702385, g: 0.773172, b: 0.9622642, a: 0.57254905}
-    - _rim: {r: 0.40566033, g: 0.4568475, b: 1, a: 1}
+    - _color: {r: 0.65471697, g: 0.8674113, b: 1, a: 0.57254905}
+    - _rim: {r: 0.1483303, g: 0.21665204, b: 0.94716984, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &8701239476381689597
