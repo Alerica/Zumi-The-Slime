@@ -48,6 +48,7 @@ public class ImprovedFrogMovement : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip[] jumpSounds;
     public AudioClip[] landSounds;
+    public AudioClip[] dodgeSounds;   
 
     private Rigidbody rb;
     private Vector3 moveDirection;
@@ -345,26 +346,22 @@ public class ImprovedFrogMovement : MonoBehaviour
     }
 
 
-
-     // ===== DODGE WITH IMMUNITY =====
-    
     IEnumerator Dodge()
     {
         canDodge = false;
         isDodging = true;
+        
+        PlayDodgeSound(); 
 
         // GRANT IMMUNITY DURING DODGE
         SetImmunity(true, dodgeDuration);
 
-        // lock rotation
         canRotateWithMovement = false;
 
-        // pick a dodge direction: input or forward
         Vector3 dir = smoothedMoveDirection.magnitude > 0.1f
                       ? smoothedMoveDirection.normalized
                       : transform.forward;
 
-        // reset horizontal speed, then impulse
         rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         Vector3 impulse = dir * dodgeForce + Vector3.up * (dodgeForce * 0.2f);
         rb.AddForce(impulse, ForceMode.Impulse);
@@ -372,11 +369,11 @@ public class ImprovedFrogMovement : MonoBehaviour
         yield return new WaitForSeconds(dodgeDuration);
         
 
-        // restore rotation (immunity ends automatically)
         canRotateWithMovement = true;
         isDodging = false;
+        
+        
 
-        // cooldown
         yield return new WaitForSeconds(dodgeCooldown);
         canDodge = true;
     }
@@ -394,6 +391,16 @@ public class ImprovedFrogMovement : MonoBehaviour
             audioSource.PlayOneShot(landSounds[Random.Range(0, landSounds.Length)],
                                      Random.Range(0.8f, 1.0f));
     }
+    
+    void PlayDodgeSound()
+    {
+        if (audioSource != null && dodgeSounds.Length > 0)
+            audioSource.PlayOneShot(
+                dodgeSounds[Random.Range(0, dodgeSounds.Length)],
+                Random.Range(0.9f, 1.1f)
+            );
+    }
+
 
     void OnDrawGizmosSelected()
     {

@@ -6,11 +6,24 @@ public class MoveOnTrigger : MonoBehaviour
     public Vector3 destination;      // Local or world destination
     public float moveDuration = 1f;  // How long it takes
     public bool useLocalPosition = false;
+    
+    [Header("Audio")]
+    public AudioSource audioSource;  // assign in Inspector
+    public AudioClip moveClip;       // the sound to play
 
     public void Move()
     {
+        PlayMoveSound();
         if (target != null)
             StartCoroutine(MoveToPosition());
+    }
+    
+    public void PlayMoveSound()
+    {
+        if (audioSource != null && moveClip != null)
+        {
+            audioSource.PlayOneShot(moveClip);
+        }
     }
 
     private System.Collections.IEnumerator MoveToPosition()
