@@ -8,7 +8,7 @@ public class BossController1 : MonoBehaviour
 {
     [Header("Boss Stats")]
     [SerializeField] private int maxHealth = 100;
-    [SerializeField] private int currentHealth;
+    [SerializeField] public int currentHealth;
     [SerializeField] private int damagePerBall = 5;
     [SerializeField] private int damagePerCombo = 10;
 

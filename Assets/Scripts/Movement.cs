@@ -111,7 +111,7 @@ public class ImprovedFrogMovement : MonoBehaviour
         HandleJumping();
         ApplyDrag();
         ApplyGravity();
-        if (!isDodging && canRotateWithMovement && smoothedMoveDirection.sqrMagnitude > 0.01f)
+        if (!isDodging && canRotateWithMovement && !cameraController.IsAiming()  && smoothedMoveDirection.sqrMagnitude > 0.01f)
         {
             Quaternion target = Quaternion.LookRotation(smoothedMoveDirection, Vector3.up);
             // Slerp in physics time

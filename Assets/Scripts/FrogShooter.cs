@@ -26,10 +26,11 @@ public class FrogShooter : MonoBehaviour
     
     [Header("Aiming")]
     public GameObject aimReticle; 
-    public LineRenderer trajectoryLine; 
-    public int trajectoryPoints = 30;
-    public float trajectoryTimeStep = 0.1f;
-    
+    private Camera playerCamera;
+    private Vector3 aimDirection;
+    private Vector3 aimPoint;
+    private bool isAiming = false;
+
     [Header("Effects")]
     public ParticleSystem shootEffect;
     public AudioSource audioSource;
@@ -46,23 +47,19 @@ public class FrogShooter : MonoBehaviour
     private int currentBallColor;
     private int nextBallColor;
     private bool canShoot = true;
-    private Camera playerCamera;
-    private Vector3 aimDirection;
-    private Vector3 aimPoint;
-    private bool isAiming = false;
     
     void Start()
     {
         playerCamera = Camera.main ?? GetComponentInChildren<Camera>();
         newCameraController = newCameraController ?? GetComponent<NewCamera>();
-        EnsurePositionsAndLine();
+        EnsurePositions();
         if (ballPrefab == null)
             Debug.LogError("Ball Prefab is not assigned! Please assign a ball prefab in the inspector.");
 
         SpawnInitialBalls();
     }
 
-    void EnsurePositionsAndLine()
+    void EnsurePositions()
     {
         if (mouthPosition == null)
         {
@@ -85,17 +82,6 @@ public class FrogShooter : MonoBehaviour
             sp.transform.localPosition = new Vector3(0, 0.5f, 0.5f);
             shootPosition = sp.transform;
         }
-        if (trajectoryLine == null)
-        {
-            var lineObj = new GameObject("TrajectoryLine");
-            lineObj.transform.SetParent(transform);
-            trajectoryLine = lineObj.AddComponent<LineRenderer>();
-            trajectoryLine.startWidth = 0.05f;
-            trajectoryLine.endWidth = 0.02f;
-            trajectoryLine.material = new Material(Shader.Find("Sprites/Default"));
-            trajectoryLine.startColor = new Color(1, 1, 1, 0.5f);
-            trajectoryLine.endColor   = new Color(1, 1, 1, 0.1f);
-        }
     }
 
     void Update()
@@ -103,7 +89,6 @@ public class FrogShooter : MonoBehaviour
         HandleAiming();
         HandleShooting();
         AnimateBalls();
-        UpdateTrajectory();
     }
 
     void SpawnInitialBalls()
@@ -201,18 +186,15 @@ public class FrogShooter : MonoBehaviour
         ballToShoot.transform.SetParent(null);
         ballToShoot.transform.position = shootPosition.position;
 
-        // ——— ADD BallBehavior so spline code sees it ———
         var behavior = ballToShoot.AddComponent<BallBehavior>();
         behavior.colorIndex = currentBallColor;
 
         var rb = ballToShoot.GetComponent<Rigidbody>();
         rb.isKinematic = false;
 
-        // ——— USE rb.velocity (not linearVelocity) ———
         rb.linearVelocity = Vector3.zero;
         rb.linearVelocity = aimDirection * shootForce;
 
-        // reduced gravity
         if (gravityMultiplier < 1f)
         {
             var customGrav = ballToShoot.AddComponent<CustomGravity>();
@@ -224,7 +206,6 @@ public class FrogShooter : MonoBehaviour
             rb.useGravity = true;
         }
 
-        // enable collider explicitly as non-trigger
         var col = ballToShoot.GetComponent<Collider>();
         col.enabled   = true;
         col.isTrigger = false;
@@ -285,28 +266,6 @@ public class FrogShooter : MonoBehaviour
             nextBall.transform.Rotate(Vector3.up, 30f * Time.deltaTime);
     }
     
-    void UpdateTrajectory()
-    {
-        if (trajectoryLine == null || !isAiming || shootPosition == null) return;
-        Vector3 startPos = shootPosition.position;
-        Vector3 velocity = aimDirection * shootForce;
-        trajectoryLine.positionCount = trajectoryPoints;
-
-        for (int i = 0; i < trajectoryPoints; i++)
-        {
-            float t = i * trajectoryTimeStep;
-            Vector3 point = startPos + velocity * t;
-            point.y += Physics.gravity.y * gravityMultiplier * 0.5f * t * t;
-            trajectoryLine.SetPosition(i, point);
-            if (i > 0 &&
-                Physics.Linecast(trajectoryLine.GetPosition(i - 1), point, aimLayerMask))
-            {
-                trajectoryLine.positionCount = i;
-                break;
-            }
-        }
-    }
-
     void PlayShootSound()
     {
         if (audioSource != null && shootSounds.Length > 0)
