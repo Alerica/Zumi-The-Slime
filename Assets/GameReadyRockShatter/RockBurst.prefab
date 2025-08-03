@@ -60,6 +60,9 @@ VisualEffect:
       - m_Value: {x: 1, y: 0, z: 0, w: 0}
         m_Name: RockColor
         m_Overridden: 1
+      - m_Value: {x: 64, y: 64, z: 64, w: 0}
+        m_Name: Color
+        m_Overridden: 1
     m_Uint:
       m_Array: []
     m_Int:
@@ -83,7 +86,7 @@ VFXRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8108018585322453387}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0

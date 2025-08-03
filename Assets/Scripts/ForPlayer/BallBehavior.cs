@@ -9,7 +9,7 @@ public class BallBehavior : MonoBehaviour
 
     [Header("Break Effect")]
     [Tooltip("Assign your ParticleSystem prefab here (Play On Awake).")]
-    public ParticleSystem breakEffectPrefab;
+    public GameObject breakEffectPrefab;
 
     private bool hasCollided = false;
 

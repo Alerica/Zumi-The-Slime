@@ -15,6 +15,7 @@ public class EnemyHealthUI : MonoBehaviour
 
     public void UpdateHealth(float normalizedHealth)
     {
+        Debug.Log($"Updating enemy health UI: {normalizedHealth * 100}%");
         normalizedHealth = Mathf.Clamp01(normalizedHealth);
 
         if (normalizedHealth < currentFill)
