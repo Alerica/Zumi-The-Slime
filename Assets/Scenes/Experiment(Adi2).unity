@@ -2398,7 +2398,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1187739454
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2544,6 +2544,7 @@ MonoBehaviour:
   landSound: {fileID: 0}
   laserChargeSound: {fileID: 0}
   laserFireSound: {fileID: 0}
+  awakeTime: 3
 --- !u!95 &1187739455
 Animator:
   serializedVersion: 7
@@ -2822,7 +2823,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1382308266
 Transform:
   m_ObjectHideFlags: 0
@@ -11308,6 +11309,7 @@ MonoBehaviour:
   landSound: {fileID: 0}
   laserChargeSound: {fileID: 0}
   laserFireSound: {fileID: 0}
+  awakeTime: 3
 --- !u!95 &4474288610896515929
 Animator:
   serializedVersion: 7
