@@ -123,6 +123,12 @@ public class BossController1 : MonoBehaviour
     private bool isPlayingLaserFireAudio = false;
     private float originalAudioVolume; // NEW: Store original volume
     private Coroutine currentFadeCoroutine; // NEW: Track current fade operation
+    [Header("Health Bar")]
+    public EnemyHealthUI healthUI;
+
+    [Header("Ending Scene")]
+    public GameObject endingSceneTrigger;
+    public float bossDeadTime = 10f; 
 
     private enum BossState
     {
@@ -760,6 +766,10 @@ public class BossController1 : MonoBehaviour
                 break;
             case BossState.Die:
                 animator.SetBool("Die", true);
+                if (endingSceneTrigger != null)
+                {
+                    StartCoroutine(BossEnding());
+                }
                 break;
         }
     }
@@ -804,22 +814,24 @@ public class BossController1 : MonoBehaviour
 
     public void HandleShotReport(int destroyedCount, int comboCount, List<int> enteredTypes)
     {
-        int damage = destroyedCount * damagePerBall + comboCount * damagePerCombo;
+        int damage = Mathf.Min(15, destroyedCount * damagePerBall + comboCount * damagePerCombo);
         TakeDamage(damage);
         int healAmount = enteredTypes.Count;
-        Heal(healAmount);
+        // Heal(healAmount);
         Debug.Log($"Destroyed:{destroyedCount} Combos:{comboCount} DamageTaken:{damage} Healed:{healAmount} Health:{currentHealth}/{maxHealth}");
+        healthUI?.UpdateHealth((float)currentHealth / 100f);
     }
 
     private void TakeDamage(int amount)
     {
+
         currentHealth -= amount;
         currentHealth = Mathf.Max(currentHealth, 0);
         if (currentHealth == 0)
             Die();
     }
 
-    private void Heal(int amount)
+    public void Heal(int amount)
     {
         currentHealth += amount;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
@@ -849,6 +861,16 @@ public class BossController1 : MonoBehaviour
         rb.isKinematic = true;
     }
 
+    private IEnumerator BossEnding()
+    {
+        // Wait for a moment before triggering the ending scene
+        yield return new WaitForSeconds(bossDeadTime);
+        if (endingSceneTrigger != null)
+        {
+            endingSceneTrigger.SetActive(true);
+        }
+    }
+
     // NEW: Handle death audio with fade
     private IEnumerator HandleDeathAudio()
     {
@@ -856,7 +878,7 @@ public class BossController1 : MonoBehaviour
         FadeOutCurrentAudio();
         // Wait a moment for fade, then play death sound
         yield return new WaitForSeconds(audioFadeOutTime * 0.5f); // Shorter wait for death
-        
+
         if (deathSound != null)
         {
             PlaySoundOneShot(deathSound);

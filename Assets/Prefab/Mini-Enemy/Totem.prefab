@@ -1004,12 +1004,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b234402ab6c1349b6bcee0338be1f5d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ballPrefab: {fileID: 4256859761569873437, guid: 700bed2cb1bcf42c0bee9c73c73e98ba, type: 3}
+  ballPrefab: {fileID: 585312401516577541, guid: da644aa234d0b9e449f7dc2156f42834, type: 3}
   ballMaterials:
-  - {fileID: 2100000, guid: f6bed5edbaefe42888299d9c04def7cc, type: 2}
-  - {fileID: 2100000, guid: d4c0826a780b24ab7b7800fd2815475c, type: 2}
-  - {fileID: 2100000, guid: 3ff4fb394ac6949d3afd93f31072c87f, type: 2}
-  ballSize: 0.3
+  - {fileID: 2100000, guid: 552674a112a177f44bb6bee09d67cca6, type: 2}
+  - {fileID: 2100000, guid: 45a1f465fc447fb4e9cf2640a2b52b6f, type: 2}
+  - {fileID: 2100000, guid: a5a4849c8949e0242b66e93bcdcbad79, type: 2}
+  - {fileID: 2100000, guid: f2f95cad74206ca41b980de74be35c59, type: 2}
+  - {fileID: 2100000, guid: d6a99dcdf021e444ba86e7299ad00571, type: 2}
+  ballSize: 0.12
   ballSpacing: 1.2
   chainSpeed: 2
   totalBallCount: 1000
