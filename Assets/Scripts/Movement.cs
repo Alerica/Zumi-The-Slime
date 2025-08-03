@@ -123,9 +123,9 @@ public class ImprovedFrogMovement : MonoBehaviour
 
     void HandleInput()
     {
-        if(GameManager.Instance)
+        if (GameManager.Instance)
         {
-            if (GameManager.Instance.lockedMovement) return; 
+            if (GameManager.Instance.lockedMovement) return;
         }
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
@@ -135,7 +135,7 @@ public class ImprovedFrogMovement : MonoBehaviour
         {
             Transform ct = cameraController.GetCameraTransform();
             Vector3 f = ct.forward; f.y = 0; f.Normalize();
-            Vector3 r = ct.right;   r.y = 0; r.Normalize();
+            Vector3 r = ct.right; r.y = 0; r.Normalize();
             moveDirection = (f * inputDir.z + r * inputDir.x).normalized;
         }
         else

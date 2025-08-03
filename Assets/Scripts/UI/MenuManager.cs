@@ -29,14 +29,20 @@ public class MenuManager : MonoBehaviour
             float volume = PlayerPrefs.GetFloat("MusicVolume", 0.75f);
             musicSlider.value = volume;
             SetVolumeMusic(volume);
+        }
 
+        if(sfxSlider != null)
+        {
             float sfxVolume = PlayerPrefs.GetFloat("SFXVolume", 0.75f);
             sfxSlider.value = sfxVolume;
             SetVolumeSFX(sfxVolume);
+        }
 
-            float UIVolume = PlayerPrefs.GetFloat("UIVolume", 0.75f);
-            UISlider.value = UIVolume;
-            SetVolumeUI(UIVolume);
+        if(UISlider != null)
+        {
+            float volume = PlayerPrefs.GetFloat("Volume", 0.75f);
+            UISlider.value = volume;
+            SetVolume(volume);
         }
 
         Cursor.lockState = CursorLockMode.None;

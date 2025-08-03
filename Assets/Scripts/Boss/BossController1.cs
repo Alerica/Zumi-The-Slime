@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SearchService;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Animator))]
@@ -8,7 +10,7 @@ public class BossController1 : MonoBehaviour
 {
     [Header("Boss Stats")]
     [SerializeField] private int maxHealth = 100;
-    [SerializeField] private int currentHealth;
+    [SerializeField] public int currentHealth;
     [SerializeField] private int damagePerBall = 5;
     [SerializeField] private int damagePerCombo = 10;
 
@@ -625,7 +627,7 @@ public class BossController1 : MonoBehaviour
             {
                 float t = windupTimer / jumpWindupTime;
                 UpdateIndicatorColor(currentJumpIndicator, t);
-                currentJumpIndicator.transform.localScale = Vector3.one * jumpSlamRadius * 2f * (1f + Mathf.Sin(windupTimer * indicatorPulseSpeed) * 0.1f);
+                currentJumpIndicator.transform.localScale = new Vector3(jumpSlamRadius * 5, 0.001f, jumpSlamRadius * 5);
             }
             yield return null;
         }
@@ -679,8 +681,8 @@ public class BossController1 : MonoBehaviour
     private void CreateJumpIndicator(Vector3 position)
     {
         if (jumpIndicatorPrefab == null) return;
-        currentJumpIndicator = Instantiate(jumpIndicatorPrefab, position + Vector3.up * 0.1f, Quaternion.Euler(90, 0, 0));
-        currentJumpIndicator.transform.localScale = Vector3.one * jumpSlamRadius * 2f;
+        currentJumpIndicator = Instantiate(jumpIndicatorPrefab, position + Vector3.up * 0.1f, Quaternion.Euler(0, 0, 0));
+        currentJumpIndicator.transform.localScale = new Vector3(jumpSlamRadius * 4, 0.001f, jumpSlamRadius * 4);
     }
 
     private void UpdateIndicatorColor(GameObject indicator, float t)
@@ -868,6 +870,8 @@ public class BossController1 : MonoBehaviour
         if (endingSceneTrigger != null)
         {
             endingSceneTrigger.SetActive(true);
+            yield return new WaitForSeconds(30f);
+            SceneManager.LoadScene("EndingScene");  
         }
     }
 

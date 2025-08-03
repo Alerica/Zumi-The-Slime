@@ -609,7 +609,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4721908e51b03e4e89cb4957363b1e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 30
+  maxHealth: 15
   healthBar: {fileID: 4851304178387906133}
 --- !u!114 &4851304178387906133
 MonoBehaviour:
@@ -1012,7 +1012,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: f2f95cad74206ca41b980de74be35c59, type: 2}
   - {fileID: 2100000, guid: d6a99dcdf021e444ba86e7299ad00571, type: 2}
   ballSize: 0.12
-  ballSpacing: 1.2
+  ballSpacing: 1.1
   chainSpeed: 2
   totalBallCount: 1000
   initialVisibleCount: 10
