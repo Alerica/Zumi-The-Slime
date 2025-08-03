@@ -85,6 +85,12 @@ public class BossController1 : MonoBehaviour
     [SerializeField] private AudioClip landSound;
     [SerializeField] private AudioClip laserChargeSound;
     [SerializeField] private AudioClip laserFireSound;
+    [SerializeField] private AudioClip awakeSound;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private AudioClip[] walkSounds;
+    [SerializeField] private float walkStepInterval = 0.6f;
+    [SerializeField] private float walkPitchVariation = 0.2f;
+    [SerializeField] private float audioFadeOutTime = 0.5f; // NEW: Fade out duration
 
     [Header("other")] 
     [SerializeField] private float awakeTime = 3f; 
@@ -104,6 +110,19 @@ public class BossController1 : MonoBehaviour
     private bool isFiringLaser = false;
     private Vector3 laserEndPoint;
     private LaserDamageZone laserDamageZone;
+    
+    // Walking audio variables
+    private float lastWalkStepTime;
+    private int lastWalkSoundIndex = -1;
+    private bool wasWalking = false;
+    
+    // Audio state tracking
+    private bool isPlayingAwakeAudio = false;
+    private bool isPlayingDeathAudio = false;
+    private bool isPlayingLaserChargeAudio = false;
+    private bool isPlayingLaserFireAudio = false;
+    private float originalAudioVolume; // NEW: Store original volume
+    private Coroutine currentFadeCoroutine; // NEW: Track current fade operation
 
     private enum BossState
     {
@@ -136,6 +155,11 @@ public class BossController1 : MonoBehaviour
             ? animatorOverride
             : GetComponent<Animator>() ?? GetComponentInChildren<Animator>();
         currentHealth = maxHealth;
+        
+        // NEW: Store original audio volume
+        if (audioSource != null)
+            originalAudioVolume = audioSource.volume;
+        
         if (splineSpawner != null) splineSpawner.OnShotReport += HandleShotReport;
         if (laserLineRenderer == null && laserOrigin != null)
         {
@@ -154,6 +178,9 @@ public class BossController1 : MonoBehaviour
 
     private void Update()
     {
+        // Handle audio state management
+        HandleAudioStates();
+
         if (!isAwake || currentState == BossState.Die) return;
 
         if (!isPerformingAttack)
@@ -171,11 +198,158 @@ public class BossController1 : MonoBehaviour
                 SetState(BossState.Idle);
         }
 
+        // Handle walking audio
+        HandleWalkingAudio();
+
         if (isFiringLaser && laserOrigin != null)
             UpdateLaserVisual();
 
         if (currentState != BossState.Dormant && currentState != BossState.Die)
             FacePlayer();
+    }
+
+    private void HandleAudioStates()
+    {
+        // Stop wake audio when awakening is complete
+        if (isPlayingAwakeAudio && currentState != BossState.Awakening)
+        {
+            FadeOutCurrentAudio();
+            isPlayingAwakeAudio = false;
+        }
+
+        // Stop laser charge audio when not charging
+        if (isPlayingLaserChargeAudio && currentState != BossState.LaserCharge)
+        {
+            FadeOutCurrentAudio();
+            isPlayingLaserChargeAudio = false;
+        }
+
+        // Stop laser fire audio when not firing
+        if (isPlayingLaserFireAudio && currentState != BossState.LaserFire)
+        {
+            FadeOutCurrentAudio();
+            isPlayingLaserFireAudio = false;
+        }
+    }
+
+    // NEW: Fade out audio smoothly
+    private void FadeOutCurrentAudio()
+    {
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            if (currentFadeCoroutine != null)
+                StopCoroutine(currentFadeCoroutine);
+            currentFadeCoroutine = StartCoroutine(FadeOutAudio());
+        }
+    }
+
+    // NEW: Coroutine to handle audio fade out
+    private IEnumerator FadeOutAudio()
+    {
+        if (audioSource == null) yield break;
+        
+        float startVolume = audioSource.volume;
+        float timer = 0f;
+        
+        while (timer < audioFadeOutTime && audioSource.isPlaying)
+        {
+            timer += Time.deltaTime;
+            float t = timer / audioFadeOutTime;
+            audioSource.volume = Mathf.Lerp(startVolume, 0f, t);
+            yield return null;
+        }
+        
+        // Ensure audio is fully stopped and volume is reset
+        if (audioSource.isPlaying)
+        {
+            audioSource.Stop();
+            audioSource.clip = null;
+        }
+        audioSource.volume = originalAudioVolume;
+        currentFadeCoroutine = null;
+    }
+
+    private void StopCurrentAudio()
+    {
+        if (currentFadeCoroutine != null)
+        {
+            StopCoroutine(currentFadeCoroutine);
+            currentFadeCoroutine = null;
+        }
+        
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+            audioSource.clip = null;
+            audioSource.volume = originalAudioVolume;
+        }
+    }
+
+    private void PlaySoundOneShot(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+            audioSource.PlayOneShot(clip);
+    }
+
+    private void PlaySoundLoop(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            // Stop any current fade and reset volume
+            if (currentFadeCoroutine != null)
+            {
+                StopCoroutine(currentFadeCoroutine);
+                currentFadeCoroutine = null;
+            }
+            
+            audioSource.volume = originalAudioVolume;
+            audioSource.clip = clip;
+            audioSource.loop = false;
+            audioSource.Play();
+        }
+    }
+
+    private void HandleWalkingAudio()
+    {
+        bool isCurrentlyWalking = currentState == BossState.Walking;
+        
+        if (isCurrentlyWalking)
+        {
+            if (Time.time - lastWalkStepTime >= walkStepInterval)
+            {
+                PlayWalkSound();
+                lastWalkStepTime = Time.time;
+            }
+        }
+        
+        wasWalking = isCurrentlyWalking;
+    }
+
+    private void PlayWalkSound()
+    {
+        if (walkSounds == null || walkSounds.Length == 0) return;
+        
+        int soundIndex;
+        if (walkSounds.Length == 1)
+        {
+            soundIndex = 0;
+        }
+        else
+        {
+            do
+            {
+                soundIndex = Random.Range(0, walkSounds.Length);
+            } while (soundIndex == lastWalkSoundIndex && walkSounds.Length > 1);
+        }
+        
+        lastWalkSoundIndex = soundIndex;
+        
+        float originalPitch = audioSource.pitch;
+        audioSource.pitch = 1f + Random.Range(-walkPitchVariation, walkPitchVariation);
+        
+        PlaySoundOneShot(walkSounds[soundIndex]);
+        
+        audioSource.pitch = originalPitch;
     }
 
     private void MoveTowardsPlayer()
@@ -224,7 +398,14 @@ public class BossController1 : MonoBehaviour
         isPerformingAttack = true;
         lastLaserTime = Time.time;
         SetState(BossState.LaserCharge);
-        PlaySound(laserChargeSound);
+        
+        // Play laser charge sound
+        if (laserChargeSound != null)
+        {
+            PlaySoundLoop(laserChargeSound);
+            isPlayingLaserChargeAudio = true;
+        }
+        
         if (laserChargeParticles != null) laserChargeParticles.transform.position = laserOrigin.position;
         if (laserChargeParticles != null) laserChargeParticles.Play();
         if (laserLight != null)
@@ -241,8 +422,24 @@ public class BossController1 : MonoBehaviour
             if (laserLight != null) laserLight.intensity = Mathf.Lerp(0, 10, t);
             yield return null;
         }
+        
+        // Stop charge audio and start fire audio
+        if (isPlayingLaserChargeAudio)
+        {
+            FadeOutCurrentAudio();
+            isPlayingLaserChargeAudio = false;
+            // Wait for fade to complete before starting fire sound
+            yield return new WaitForSeconds(audioFadeOutTime);
+        }
+        
         SetState(BossState.LaserFire);
-        PlaySound(laserFireSound);
+        
+        if (laserFireSound != null)
+        {
+            PlaySoundLoop(laserFireSound);
+            isPlayingLaserFireAudio = true;
+        }
+        
         isFiringLaser = true;
         if (laserChargeParticles != null) laserChargeParticles.Stop();
         if (laserLineRenderer != null) laserLineRenderer.enabled = true;
@@ -254,6 +451,14 @@ public class BossController1 : MonoBehaviour
             CheckLaserHit();
             yield return null;
         }
+        
+        // Stop fire audio
+        if (isPlayingLaserFireAudio)
+        {
+            FadeOutCurrentAudio();
+            isPlayingLaserFireAudio = false;
+        }
+        
         isFiringLaser = false;
         if (laserDamageZone != null) laserDamageZone.ActivateLaser(false);
         if (laserLineRenderer != null) laserLineRenderer.enabled = false;
@@ -266,7 +471,6 @@ public class BossController1 : MonoBehaviour
 
     private void SetupLaserVisual()
     {
-        // Temporary to make it easier to edit 
         if (laserLineRenderer == null) return;
         laserLineRenderer.startWidth = laserWidth;
         laserLineRenderer.endWidth = laserWidth * 0.8f;
@@ -299,7 +503,6 @@ public class BossController1 : MonoBehaviour
 
     private void UpdateLaserVisual()
     {
-        // Temporary to make it easier to edit 
         if (laserLineRenderer == null || laserOrigin == null) return;
         Vector3 origin = laserOrigin.position;
         Vector3 direction = laserOrigin.forward;
@@ -341,116 +544,64 @@ public class BossController1 : MonoBehaviour
                     Debug.Log($"Laser hit player! Would deal {laserDamagePerSecond * Time.deltaTime} damage");
         }
     }
-
-    // private IEnumerator PerformDashAttack()
-    // {
-    //     isPerformingAttack = true;
-    //     lastDashTime = Time.time;
-    //     SetState(BossState.DashStart);
-    //     Vector3 dashDirection = (player.position - transform.position).normalized;
-    //     dashDirection.y = 0;
-    //     CreateDashIndicator(dashDirection);
-    //     PlaySound(dashWindupSound);
-    //     if (dashChargeEffect != null) dashChargeEffect.Play();
-    //     float windupTimer = 0;
-    //     while (windupTimer < dashWindupTime)
-    //     {
-    //         windupTimer += Time.deltaTime;
-    //         if (currentDashIndicator != null)
-    //             UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
-    //         FacePlayer();
-    //         dashDirection = (player.position - transform.position).normalized;
-    //         dashDirection.y = 0;
-    //         yield return null;
-    //     }
-    //     SetState(BossState.DashOngoing);
-    //     SetActiveCollider(ColliderType.Dash);
-    //     DestroyIndicator(currentDashIndicator);
-    //     PlaySound(dashSound);
-    //     if (dashTrail != null) dashTrail.enabled = true;
-    //     Vector3 startPos = transform.position;
-    //     Vector3 endPos = startPos + dashDirection * dashDistance;
-    //     float dashTimer = 0;
-    //     float dashTime = dashDistance / dashSpeed;
-    //     while (dashTimer < dashTime)
-    //     {
-    //         dashTimer += Time.deltaTime;
-    //         transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
-    //         yield return null;
-    //     }
-    //     SetState(BossState.DashEnd);
-    //     SetActiveCollider(ColliderType.Normal);
-    //     if (dashTrail != null) dashTrail.enabled = false;
-    //     yield return new WaitForSeconds(0.5f);
-    //     SetState(BossState.Idle);
-    //     isPerformingAttack = false;
-    // }
-    //
     
     private IEnumerator PerformDashAttack()
-{
-    isPerformingAttack = true;
-    lastDashTime = Time.time;
-    SetState(BossState.DashStart);
-    
-    // Lock the dash direction at the start - no more tracking after this point
-    Vector3 dashDirection = (player.position - transform.position).normalized;
-    dashDirection.y = 0;
-    
-    // Store the locked rotation for the dash
-    Quaternion lockedRotation = Quaternion.LookRotation(dashDirection);
-    transform.rotation = lockedRotation; // Face the direction immediately
-    
-    CreateDashIndicator(dashDirection);
-    PlaySound(dashWindupSound);
-    if (dashChargeEffect != null) dashChargeEffect.Play();
-    
-    float windupTimer = 0;
-    while (windupTimer < dashWindupTime)
     {
-        windupTimer += Time.deltaTime;
-        if (currentDashIndicator != null)
-            UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
+        isPerformingAttack = true;
+        lastDashTime = Time.time;
+        SetState(BossState.DashStart);
         
-        // Keep the boss locked in the dash direction - no more FacePlayer() calls
+        Vector3 dashDirection = (player.position - transform.position).normalized;
+        dashDirection.y = 0;
+        
+        Quaternion lockedRotation = Quaternion.LookRotation(dashDirection);
         transform.rotation = lockedRotation;
         
-        yield return null;
+        CreateDashIndicator(dashDirection);
+        PlaySoundOneShot(dashWindupSound);
+        if (dashChargeEffect != null) dashChargeEffect.Play();
+        
+        float windupTimer = 0;
+        while (windupTimer < dashWindupTime)
+        {
+            windupTimer += Time.deltaTime;
+            if (currentDashIndicator != null)
+                UpdateIndicatorColor(currentDashIndicator, windupTimer / dashWindupTime);
+            
+            transform.rotation = lockedRotation;
+            
+            yield return null;
+        }
+        
+        SetState(BossState.DashOngoing);
+        SetActiveCollider(ColliderType.Dash);
+        DestroyIndicator(currentDashIndicator);
+        PlaySoundOneShot(dashSound);
+        if (dashTrail != null) dashTrail.enabled = true;
+        
+        Vector3 startPos = transform.position;
+        Vector3 endPos = startPos + dashDirection * dashDistance;
+        float dashTimer = 0;
+        float dashTime = dashDistance / dashSpeed;
+        
+        while (dashTimer < dashTime)
+        {
+            dashTimer += Time.deltaTime;
+            float t = dashSpeedCurve.Evaluate(dashTimer / dashTime);
+            Vector3 targetPos = Vector3.Lerp(startPos, endPos, t);
+            rb.MovePosition(targetPos);
+            yield return null;
+        }
+        
+        SetState(BossState.DashEnd);
+        SetActiveCollider(ColliderType.Normal);
+        if (dashTrail != null) dashTrail.enabled = false;
+        
+        yield return new WaitForSeconds(0.5f);
+        SetState(BossState.Idle);
+        isPerformingAttack = false;
     }
-    
-    SetState(BossState.DashOngoing);
-    SetActiveCollider(ColliderType.Dash);
-    DestroyIndicator(currentDashIndicator);
-    PlaySound(dashSound);
-    if (dashTrail != null) dashTrail.enabled = true;
-    
-    Vector3 startPos = transform.position;
-    Vector3 endPos = startPos + dashDirection * dashDistance;
-    float dashTimer = 0;
-    float dashTime = dashDistance / dashSpeed;
-    
-    while (dashTimer < dashTime)
-    {
-        // dashTimer += Time.deltaTime;
-        // transform.position = Vector3.Lerp(startPos, endPos, dashSpeedCurve.Evaluate(dashTimer / dashTime));
-        // // Keep rotation locked during dash execution too
-        // transform.rotation = lockedRotation;
-        // yield return null;
-        dashTimer += Time.deltaTime;
-        float t = dashSpeedCurve.Evaluate(dashTimer / dashTime);
-        Vector3 targetPos = Vector3.Lerp(startPos, endPos, t);
-        rb.MovePosition(targetPos);
-        yield return null;
-    }
-    
-    SetState(BossState.DashEnd);
-    SetActiveCollider(ColliderType.Normal);
-    if (dashTrail != null) dashTrail.enabled = false;
-    
-    yield return new WaitForSeconds(0.5f);
-    SetState(BossState.Idle);
-    isPerformingAttack = false;
-}
+
     private IEnumerator PerformJumpAttack()
     {
         isPerformingAttack = true;
@@ -458,7 +609,7 @@ public class BossController1 : MonoBehaviour
         SetState(BossState.JumpStart);
         jumpTargetPosition = player.position;
         CreateJumpIndicator(jumpTargetPosition);
-        PlaySound(jumpWindupSound);
+        PlaySoundOneShot(jumpWindupSound);
         if (jumpChargeEffect != null) jumpChargeEffect.Play();
         float windupTimer = 0;
         while (windupTimer < jumpWindupTime)
@@ -474,7 +625,7 @@ public class BossController1 : MonoBehaviour
         }
         SetState(BossState.JumpOngoing);
         SetActiveCollider(ColliderType.Jump);
-        PlaySound(jumpSound);
+        PlaySoundOneShot(jumpSound);
         Vector3 startPos = transform.position;
         Vector3 peakPos = new Vector3(jumpTargetPosition.x, startPos.y + jumpHeight, jumpTargetPosition.z);
         Vector3 endPos = new Vector3(jumpTargetPosition.x, startPos.y, jumpTargetPosition.z);
@@ -494,7 +645,7 @@ public class BossController1 : MonoBehaviour
             yield return null;
         }
         DestroyIndicator(currentJumpIndicator);
-        PlaySound(landSound);
+        PlaySoundOneShot(landSound);
         if (landingEffect != null)
         {
             landingEffect.transform.position = transform.position;
@@ -613,12 +764,6 @@ public class BossController1 : MonoBehaviour
         }
     }
 
-    private void PlaySound(AudioClip clip)
-    {
-        if (audioSource != null && clip != null)
-            audioSource.PlayOneShot(clip);
-    }
-
     public void AwakeBoss()
     {
         if (!isAwake)
@@ -628,7 +773,25 @@ public class BossController1 : MonoBehaviour
     private IEnumerator AwakeSequence()
     {
         SetState(BossState.Awakening);
+        
+        // Play wake up sound only during awakening
+        if (awakeSound != null)
+        {
+            PlaySoundLoop(awakeSound);
+            isPlayingAwakeAudio = true;
+        }
+        
         yield return new WaitForSeconds(awakeTime);
+        
+        // Stop wake audio when awakening is complete
+        if (isPlayingAwakeAudio)
+        {
+            FadeOutCurrentAudio();
+            isPlayingAwakeAudio = false;
+            // Wait for fade to complete
+            yield return new WaitForSeconds(audioFadeOutTime);
+        }
+        
         isAwake = true;
         SetState(BossState.Idle);
     }
@@ -666,6 +829,10 @@ public class BossController1 : MonoBehaviour
     {
         if (currentState == BossState.Die) return;
         SetState(BossState.Die);
+        
+        // Start fade and death sequence
+        StartCoroutine(HandleDeathAudio());
+        
         if (currentAttackCoroutine != null)
             StopCoroutine(currentAttackCoroutine);
         DestroyIndicator(currentDashIndicator);
@@ -680,6 +847,21 @@ public class BossController1 : MonoBehaviour
             laserImpactParticles.Stop();
         rb.linearVelocity = Vector3.zero;
         rb.isKinematic = true;
+    }
+
+    // NEW: Handle death audio with fade
+    private IEnumerator HandleDeathAudio()
+    {
+        // Stop any currently playing audio and play death sound
+        FadeOutCurrentAudio();
+        // Wait a moment for fade, then play death sound
+        yield return new WaitForSeconds(audioFadeOutTime * 0.5f); // Shorter wait for death
+        
+        if (deathSound != null)
+        {
+            PlaySoundOneShot(deathSound);
+            isPlayingDeathAudio = true;
+        }
     }
 
     private void OnDrawGizmos()

@@ -15,7 +15,6 @@ public class DealDamageToPlayer : MonoBehaviour
             if (movement != null && movement.isImmune)
             {
                 Debug.Log("Player is immune! Damage blocked.");
-                
             }
             else
             {
@@ -24,6 +23,12 @@ public class DealDamageToPlayer : MonoBehaviour
                 {
                     Debug.Log($"Dealing {damageAmount} damage to player.");
                     slimeHealth.TakeDamage(damageAmount);
+                    
+                    // Play damage sound through GameManager
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.PlayDamageSound();
+                    }
                 }
                 else
                 {

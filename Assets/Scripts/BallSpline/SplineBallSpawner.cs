@@ -34,6 +34,12 @@ public class SplineBallSpawner : MonoBehaviour
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip matchSound;
+    public AudioClip ballInsertSound;
+    public AudioClip ballDestroySound;
+
+    [Header("Particle Effects")]
+    public ParticleSystem ballBreakParticles;
+    public bool useIndividualParticles = true; // Spawn particles at each ball's position
 
     [Header("Animation Speeds")]
     [Tooltip("Time for snap-back animation after each match.")]
@@ -87,6 +93,10 @@ public class SplineBallSpawner : MonoBehaviour
             enabled = false;
             return;
         }
+        
+        // Get AudioSource if not assigned
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
         
         splineLength = splineContainer.CalculateLength(0);
         PrecomputeSplineSamples();
@@ -218,6 +228,9 @@ public class SplineBallSpawner : MonoBehaviour
         var newBall = new SplineBall(go, colorIndex, insertT);
         newBall.worldPosition = go.transform.position;
         
+        // Play ball insertion sound
+        PlayBallInsertSound();
+        
         if (verboseColorLogging)
         {
             var rend = go.GetComponent<Renderer>();
@@ -240,6 +253,42 @@ public class SplineBallSpawner : MonoBehaviour
         }
         
         StartCoroutine(ProcessChainReaction(insertIndex, colorIndex));
+    }
+
+    private void PlayBallInsertSound()
+    {
+        if (audioSource != null && ballInsertSound != null)
+        {
+            audioSource.PlayOneShot(ballInsertSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Ball Insert Sound not assigned in SplineBallSpawner.");
+        }
+    }
+
+    private void PlayBallDestroySound()
+    {
+        if (audioSource != null && ballDestroySound != null)
+        {
+            audioSource.PlayOneShot(ballDestroySound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Ball Destroy Sound not assigned in SplineBallSpawner.");
+        }
+    }
+
+    private void PlayMatchSound()
+    {
+        if (audioSource != null && matchSound != null)
+        {
+            audioSource.PlayOneShot(matchSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Match Sound not assigned in SplineBallSpawner.");
+        }
     }
 
     // Much more accurate insertion point finding
@@ -390,7 +439,9 @@ public class SplineBallSpawner : MonoBehaviour
 
             comboCount++;
             totalDestroyed += matchCount;
-            audioSource?.PlayOneShot(matchSound);
+            
+            // Play match sound when a valid match is found
+            PlayMatchSound();
 
             // Smooth knockback
             float pushAmount = Mathf.Min(knockbackForce * (1f + (matchCount - minMatchCount) * 0.2f), bufferZoneSize * 0.8f);
@@ -495,6 +546,12 @@ public class SplineBallSpawner : MonoBehaviour
         foreach (int i in indices)
             if (i < ballChain.Count && ballChain[i].distanceOnSpline >= 0f)
                 ballChain[i].isBeingDestroyed = true;
+
+        // Play ball destroy sound when balls start being destroyed
+        if (indices.Count > 0)
+        {
+            PlayBallDestroySound();
+        }
 
         if(enemyHealth != null)
         {

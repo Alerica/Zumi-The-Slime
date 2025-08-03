@@ -12,6 +12,7 @@ public class SlimeHealth : MonoBehaviour
 
     [Header("Health UI")]
     public PlayerHealthUI healthUI;
+    
     [Header("Effects")]
     public GameObject healEffect;
 
@@ -46,6 +47,12 @@ public class SlimeHealth : MonoBehaviour
 
         healEffect?.SetActive(true);
         if (healthUI != null) healthUI.UpdateHealth((float)currentHealth / maxHealth);
+        
+        // Play heal sound through GameManager
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PlayHealSound();
+        }
     }
 
     private void Die()

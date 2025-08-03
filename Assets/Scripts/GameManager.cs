@@ -22,7 +22,11 @@ public class GameManager : MonoBehaviour
     public CanvasGroup fadePanel;
     public float fadeDuration = 1f;
 
-
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip deathSound;
+    public AudioClip damageSound;
+    public AudioClip healSound;
 
     void Awake()
     {
@@ -30,6 +34,10 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); // Persist across scenes (Do not destroy on load)
+            
+            // Get AudioSource if not assigned
+            if (audioSource == null)
+                audioSource = GetComponent<AudioSource>();
         }
         else
         {
@@ -81,6 +89,10 @@ public class GameManager : MonoBehaviour
     private IEnumerator HandlePlayerDeathAndRevive()
     {
         Debug.Log("Player has died. Starting death sequence...");
+        
+        // Play death sound
+        PlayDeathSound();
+        
         yield return StartCoroutine(FadeInPanel());
 
         slimeHealth.TakeDamage(slimeHealth.maxHealth);
@@ -92,6 +104,18 @@ public class GameManager : MonoBehaviour
         RegisterRevive();
 
         yield return StartCoroutine(FadeOutPanel());
+    }
+
+    private void PlayDeathSound()
+    {
+        if (audioSource != null && deathSound != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Death Sound not assigned in GameManager.");
+        }
     }
 
     IEnumerator FadeInPanel()
@@ -118,6 +142,29 @@ public class GameManager : MonoBehaviour
         fadePanel.alpha = 0f;
     }
 
+    public void PlayDamageSound()
+    {
+        if (audioSource != null && damageSound != null)
+        {
+            audioSource.PlayOneShot(damageSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Damage Sound not assigned in GameManager.");
+        }
+    }
+
+    public void PlayHealSound()
+    {
+        if (audioSource != null && healSound != null)
+        {
+            audioSource.PlayOneShot(healSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or Heal Sound not assigned in GameManager.");
+        }
+    }
 
     public void RevivePlayer()
     {
@@ -132,5 +179,4 @@ public class GameManager : MonoBehaviour
         slimeHealth.transform.position = currentCheckpoint.transform.position;
         Debug.Log("Player has been revived at checkpoint.");
     }
-    
 }
