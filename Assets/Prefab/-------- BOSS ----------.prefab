@@ -1086,6 +1086,7 @@ GameObject:
   - component: {fileID: 4089170894183798698}
   - component: {fileID: 9169475908690806383}
   - component: {fileID: 1136215332903321542}
+  - component: {fileID: 175273898646669926}
   m_Layer: 0
   m_Name: Crystal
   m_TagString: Untagged
@@ -1161,6 +1162,27 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &175273898646669926
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3297743260538647851}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.24722078, y: 0.47355014, z: 0.24051486}
+  m_Center: {x: -0.00789502, y: 0.10984508, z: 0.010741138}
 --- !u!1 &3432041314674169857
 GameObject:
   m_ObjectHideFlags: 0
@@ -1803,7 +1825,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5906638739509499234
 Transform:
   m_ObjectHideFlags: 0
@@ -2859,8 +2881,8 @@ MonoBehaviour:
   ballSize: 0.5
   ballSpacing: 0.5
   chainSpeed: 1
-  totalBallCount: 1000
-  initialVisibleCount: 10
+  totalBallCount: 2000
+  initialVisibleCount: 20
   bufferZoneSize: 0.2
   minMatchCount: 3
   matchCheckDelay: 0.1
@@ -3372,6 +3394,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4900283117344495856}
   - component: {fileID: 5797456375905063935}
+  - component: {fileID: 3225253080718098645}
+  - component: {fileID: 5576563429628716436}
+  - component: {fileID: 989969046471476112}
   m_Layer: 7
   m_Name: '|| Default Damage Collider'
   m_TagString: Untagged
@@ -3415,6 +3440,60 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3225253080718098645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7214498106403184015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9104adb997159547be643d04fd1916d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damageAmount: 2
+--- !u!114 &5576563429628716436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7214498106403184015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 656eeee664fd06243b2384631fc6e603, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 3225253080718098645}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &989969046471476112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7214498106403184015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f2840cd0d09c2e42ba405dab83dd81d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetEvent: {fileID: 5576563429628716436}
+  requiredTag: Player
 --- !u!1 &7588673524309708012
 GameObject:
   m_ObjectHideFlags: 0
@@ -3441,13 +3520,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7588673524309708012}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -7.69, y: 11.81, z: 8.83}
-  m_LocalScale: {x: 1, y: 24.039352, z: 75.769516}
+  m_LocalRotation: {x: -0, y: -0, z: -0.6959436, w: 0.71809655}
+  m_LocalPosition: {x: -12.5, y: 8.9, z: 11.099976}
+  m_LocalScale: {x: 1, y: 116.69756, z: 138.33856}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7384624163353477743}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -88.205}
 --- !u!114 &4567813634991954528
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3463,6 +3542,8 @@ MonoBehaviour:
   bossController: {fileID: 2980069631044397084}
   triggerOnce: 1
   playerTag: Player
+  objectsToActivate:
+  - {fileID: 6111496064797781751}
   showGizmos: 1
   gizmoColor: {r: 1, g: 0, b: 0, a: 0.3}
 --- !u!65 &5746368804779198430
@@ -3671,7 +3752,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 2
 --- !u!95 &3312940980841848375
 Animator:
   serializedVersion: 7
@@ -3716,7 +3797,7 @@ MonoBehaviour:
   dashDistance: 50
   dashSpeed: 100
   dashWindupTime: 1
-  dashCooldown: 5
+  dashCooldown: 15
   minDashDistance: 10
   dashSpeedCurve:
     serializedVersion: 2
@@ -4064,6 +4145,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6170209550866782852}
   - component: {fileID: 102014041446325521}
+  - component: {fileID: 4415293559997792451}
   m_Layer: 0
   m_Name: Boss
   m_TagString: Untagged
@@ -4112,3 +4194,24 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!65 &4415293559997792451
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9014302746466873185}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.9617903, y: 2.2425802, z: 0.8986592}
+  m_Center: {x: -0.27425388, y: 0.9025397, z: 0.058762472}

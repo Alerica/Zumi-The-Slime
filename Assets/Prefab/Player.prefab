@@ -244,10 +244,11 @@ MonoBehaviour:
   hopForce: 12
   hopCooldown: 0.6
   maxHopSpeed: 8
-  dodgeForce: 12
+  dodgeForce: 30
   dodgeDuration: 0.5
   dodgeCooldown: 1
   dodgeCollider: {fileID: 5125021631438654548}
+  isImmune: 0
   groundCheck: {fileID: 1861153674029764314}
   groundDistance: 0.4
   groundMask:
@@ -279,7 +280,7 @@ MonoBehaviour:
   shootCooldown: 0.3
   aimLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 0
   maxAimDistance: 50
   gravityMultiplier: 0.021
   mouthPosition: {fileID: 6743576042121977538}
@@ -1050,6 +1051,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a0a5a463d41245848b9815755a93da86, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1834146275128019939}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a0a5a463d41245848b9815755a93da86, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1893010097876866186}
   m_SourcePrefab: {fileID: 100100000, guid: a0a5a463d41245848b9815755a93da86, type: 3}
 --- !u!1 &6143903574452794220 stripped
 GameObject:
@@ -1070,6 +1074,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   deformAmount: 0.5
   smooth: 4
+--- !u!114 &1893010097876866186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6143903574452794220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f27d8909f0504009b7ed44d453f3681, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dashStretchAmount: 2
+  dashSquashAmount: 1.5
+  dashSideSquash: 0.3
+  dashSmooth: 8
+  returnSmooth: 20
+  playerMovement: {fileID: 6506441119817437084}
+  normalDeformer: {fileID: 1834146275128019939}
 --- !u!4 &6775761379890735574 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a0a5a463d41245848b9815755a93da86, type: 3}

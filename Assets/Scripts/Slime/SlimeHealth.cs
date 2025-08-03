@@ -12,6 +12,8 @@ public class SlimeHealth : MonoBehaviour
 
     [Header("Health UI")]
     public PlayerHealthUI healthUI;
+    [Header("Effects")]
+    public GameObject healEffect;
 
     void Awake()
     {
@@ -42,6 +44,7 @@ public class SlimeHealth : MonoBehaviour
         currentHealth = Mathf.Min(currentHealth, maxHealth);
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
+        healEffect?.SetActive(true);
         if (healthUI != null) healthUI.UpdateHealth((float)currentHealth / maxHealth);
     }
 
