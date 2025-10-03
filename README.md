@@ -4,7 +4,7 @@
 **Albert** (Game Artist)
 
 ## About
-Zumi-The-Slime is a 3D action-adventure game where players control a slime character with unique shooting mechanics inspired by Zuma gameplay. Navigate through challenging levels, defeat enemies using ball-matching mechanics along spline paths, and face off against powerful bosses. Master movement abilities like jumping, dodging, and precise aiming while strategically shooting colored balls to create matches and damage enemies.
+Zumi The Slime is a 3D action adventure game where players control a slime character with unique shooting mechanics inspired by Zuma gameplay. Navigate through challenging levels, defeat enemies using ball matching mechanics along spline paths, and face off against powerful bosses. Master movement abilities like jumping, dodging, and precise aiming while strategically shooting colored balls to create matches and damage enemies.
 
 <br>
 
@@ -12,7 +12,7 @@ Zumi-The-Slime is a 3D action-adventure game where players control a slime chara
 
 **Dynamic Ball Shooting System**: Aim and shoot colored balls with realistic physics, trajectory prediction, and gravity control. Match three or more balls of the same color along enemy spline paths to deal massive damage through chain reactions and combos.
 
-**Advanced Movement Mechanics**: Fluid character control with jumping, air control, dodge rolls with i-frames, squash-and-stretch animations, and responsive ground detection for a polished platforming experience.
+**Advanced Movement Mechanics**: Fluid character control with jumping, air control, dodge rolls with i frames, squash and stretch animations, and responsive ground detection
 
 **Epic Boss Battles**: Face challenging bosses with multiple attack patterns including dash attacks, jump slams, and laser beams. Learn attack telegraphs through visual indicators and precise timing to survive intense encounters.
 
