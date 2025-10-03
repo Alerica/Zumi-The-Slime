@@ -341,7 +341,7 @@ classDiagram
 
 ## Installation & Setup
 1. Clone this repository
-2. Open the project in Unity (2021.3 or later recommended)
+2. Open the project in Unity (6 or later recommended)
 3. Open the main gameplay scene
 4. Press Play to start testing
 
